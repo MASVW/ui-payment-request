@@ -14,6 +14,9 @@ import { Link, useLocation } from "react-router-dom";
 
 const customTheme = createTheme({
     sidebar:{
+      root:{
+        base: "!h-auto min-h-screen w-full"
+      },
       item: {
         base: "flex items-center gap-x-3 p-2 rounded-lg text-sm font-medium text-black",
         active: "bg-red-200 text-black hover:bg-red-300",
@@ -35,7 +38,7 @@ const customTheme = createTheme({
           <SidebarLogo
           clearTheme
               href="/"
-              img="../../public/logo_iag.webp"
+              img="./logo_iag.webp"
           >
           </SidebarLogo>
 

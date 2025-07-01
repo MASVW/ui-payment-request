@@ -1,29 +1,32 @@
-import { Label, Textarea, TextInput, Select } from "flowbite-react";
+import { Label, Textarea, TextInput, Select, Datepicker } from "flowbite-react";
 
 interface OptionItem {
-    value: string;
-    label: string;
-  }
+  value: string;
+  label: string;
+}
 
 interface CustomInputInterface {
   id: string;
+  disable?: boolean;
   label: string;
   type: string;
   placeholder: string;
   required?: boolean;
   data?: OptionItem[];
+  value: string
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
-export function CustomInput({id, label, type, placeholder, required = false, data=[]}: CustomInputInterface) {
+export function CustomInput({ id, disable = false, label, type, placeholder, required = false, data = [], value, onChange }: CustomInputInterface) {
   let inputComponent;
 
   if (type === "textArea") {
     inputComponent = (
-      <Textarea id={id} placeholder={placeholder} required={required} rows={4} />
+      <Textarea name={id} disabled={disable} id={id} placeholder={placeholder} required={required} rows={4} value={value} onChange={onChange} />
     );
   } else if (type === "select") {
     inputComponent = (
-        <Select id={id} required={required}>
+      <Select name={id} disabled={disable} id={id} required={required} value={value} onChange={onChange}>
         <option value="">Please select an option</option>
         {data.map((item, index) => (
           <option key={index} value={item.value}>
@@ -32,48 +35,59 @@ export function CustomInput({id, label, type, placeholder, required = false, dat
         ))}
       </Select>
     );
-  } else if (type === "twoInput") {
+  } else if (type === "date") {
+    inputComponent = (
+      <Datepicker showClearButton={true} showTodayButton={true} />
+    )
+  }
+  else if (type === "twoInput") {
     inputComponent = (
       <div className="flex flex-row gap-x-5">
         <div className="flex-1/3">
-            {Array.isArray(data) && data.length > 0 ? (
-            <Select id={`${id}-select`} required={required}>
-                <option value="">{placeholder}</option>
-                {data.map((item, index) => (
+          {Array.isArray(data) && data.length > 0 ? (
+            <Select name={`${id}Select`} id={id} required={required} value={value} onChange={onChange}>
+              <option value="">{placeholder}</option>
+              {data.map((item, index) => (
                 <option key={index} value={item.value}>
-                    {item.label}
+                  {item.label}
                 </option>
-                ))}
+              ))}
             </Select>
-            ) : (
+          ) : (
             <TextInput
-                id={`${id}-input-1`}
-                type="text"
-                placeholder={placeholder}
-                required={required}
+              name={`${id}Select`}
+              id={id}
+              type="text"
+              placeholder={placeholder}
+              required={required}
+              value={value}
+              onChange={onChange}
             />
-            )}
+          )}
         </div>
-        
-  
         <div className="flex-2/3">
-            <TextInput
-            id={`${id}-input-2`}
+          <TextInput
+            name={`${id}Input`}
+            id={id}
             type="text"
             placeholder={placeholder}
             required={required}
-            />
+            value={value}
+            onChange={onChange}
+          />
         </div>
       </div>
     );
-  } 
+  }
   else {
     inputComponent = (
       <TextInput
-        id={id}
+        name={id} disabled={disable} id={id}
         type={type}
         placeholder={placeholder}
         required={required}
+        value={value}
+        onChange={onChange}
       />
     );
   }

@@ -4,8 +4,8 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { Navigation } from "./components/Navigation";
 import { Header }   from "./components/Header";
-import TitleNavigation from "./components/TitleNavigation";
 import { CustomButton } from "./components/CustomButton";
+import TitleNavigation from "./components/TitleNavigation";
 import PrintPreview from "./pages/PrintPreview";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -33,7 +33,7 @@ export default function App() {
 
   return (
     <Suspense fallback={<div>Loading…</div>}>
-      <div className="flex h-screen w-screen">
+      <div className="flex min-h-screen w-screen">
         <Navigation />
         <div className="w-full">
           <Header />

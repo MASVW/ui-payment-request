@@ -27,7 +27,7 @@ export default function TitleNavigation() {
       <p className="font-semibold">{pageTitle}</p>
       <Breadcrumb aria-label="Breadcrumb">
         <BreadcrumbItem>
-          <Link to="/" className="flex items-center gap-1">
+          <Link to="/home" className="flex items-center gap-1">
             <HiHome className="mr-1" /> Home
           </Link>
         </BreadcrumbItem>

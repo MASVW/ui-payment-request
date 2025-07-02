@@ -13,8 +13,10 @@ import {
 } from "flowbite-react";
 import { CustomInput } from "../components/CustomInput";
 import { CustomButton } from "../components/CustomButton";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form } from "react-router-dom";
+import { buildPaymentRequestPayload } from "../service/buildPaymentRequestPayload";
+
 
 
 export default function CreatePaymentForm() {
@@ -39,6 +41,65 @@ export default function CreatePaymentForm() {
     bankAccInput: "",
     checkNo: "",
     receiveNo: "",
+    remarks: "",
+    approval: ""
+  });
+
+  const [collectData, setCollectData] = useState([]);
+
+  const [detailDraft, setDetailDraft] = useState(
+    {
+      invType: "",
+      invoiceNo: "",
+      vendorRef: "",
+      invoiceAmount: "",
+      paymentAmount: "",
+      balanceInvoice: "",
+      cashDisc: "",
+      accNo: "",
+      remarkDetail: "",
+      proj: "",
+      wTaxAmount: "",
+      noFPK: "",
+      dept: "",
+      locPool: "",
+      d3: "",
+
+      d4: "",
+      d5: "",
+    });
+
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (name === "type") {
+      tabsRef.current?.setActiveTab(value === "ACCOUNT" ? 1 : 0);
+      setCollectData([]);
+    }
+  }
+
+
+  function handleChangeCollection(e) {
+    const { name, value } = e.target;
+    setDetailDraft((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    const data = buildPaymentRequestPayload(form, collectData)
+    console.log(data);
+  }
+
+function handleAddDetail() {
+  setCollectData(prev => [...prev, detailDraft]);
+  setDetailDraft({
     invType: "",
     invoiceNo: "",
     vendorRef: "",
@@ -56,26 +117,12 @@ export default function CreatePaymentForm() {
     d3: "",
     d4: "",
     d5: "",
-    remarks: "",
-    approval: ""
   });
-
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (name === "type") {
-      tabsRef.current?.setActiveTab(value === "ACCOUNT" ? 1 : 0);
-    }
   }
 
+  const lastIndex = collectData.length - 1;
+  const lastData = lastIndex >= 0 ? collectData[lastIndex] : {};
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    console.log(form);
-  }
 
   const dataTesting = [
     {
@@ -106,6 +153,7 @@ export default function CreatePaymentForm() {
       label: "Account"
     }
   ];
+
   return (
     <form onSubmit={handleSubmit}>
       <div id="formCreateContent" className="grid grid-col-1 gap-y-5 mt-4 mb-5">
@@ -174,10 +222,7 @@ export default function CreatePaymentForm() {
         <Card>
           <Tabs aria-label="Full width tabs" variant="default" ref={tabsRef} onActiveTabChange={(tab) => setActiveTab(tab)}>
             {/* WHILE TYPE == ACCOUNT, IT SUPPOSED TO BE DISABLED */}
-            <TabItem 
-                active 
-                title="Invoice" 
-                disabled={form.type === "ACCOUNT"}
+            <TabItem active title="Invoice" disabled={form.type === "ACCOUNT"}
               >
               {
                 form.type == "ACCOUNT" ? null :
@@ -186,24 +231,23 @@ export default function CreatePaymentForm() {
                     {
                       form.type == "CUSTOMER" ? null : 
                       <>
-                        <CustomInput id="invType" type="text" label="Invoice Type" placeholder="Invoice Type" value={form.invType} onChange={handleChange} />
-                        <CustomInput id="invoiceNo" type="text" label="Invoice No." placeholder="Invoice No." value={form.invoiceNo} onChange={handleChange} />
+                        <CustomInput id="invType" type="text" label="Invoice Type" placeholder="Invoice Type" value={detailDraft.invType} onChange={handleChangeCollection} />
+                        <CustomInput id="invoiceNo" type="text" label="Invoice No." placeholder="Invoice No." value={detailDraft.invoiceNo} onChange={handleChangeCollection} />
                       </>  
                     }
                     
-                    <CustomInput id="vendorRef" type="text" label="Vendor Ref No." placeholder="Vendor Ref No." value={form.vendorRef} onChange={handleChange} />
-                    {/* <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" value={form.invoiceAmount} onChange={handleChange} /> */}
-                    <CustomInput id="wTaxAmount" type="text" label="W Tax Amount" placeholder="W Tax Amount" value={form.wTaxAmount} onChange={handleChange} />
-                    <CustomInput id="paymentAmount" type="text" label="Payment Amount" placeholder="Payment Amount" value={form.paymentAmount} onChange={handleChange} />
+                    <CustomInput id="vendorRef" type="text" label="Vendor Ref No." placeholder="Vendor Ref No." value={detailDraft.vendorRef} onChange={handleChangeCollection} />
+                    {/* <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" value={detailDraft.invoiceAmount} onChange={handleChangeCollection} /> */}
+                    <CustomInput id="wTaxAmount" type="text" label="W Tax Amount" placeholder="W Tax Amount" value={detailDraft.wTaxAmount} onChange={handleChangeCollection} />
+                    <CustomInput id="paymentAmount" type="text" label="Payment Amount" placeholder="Payment Amount" value={detailDraft.paymentAmount} onChange={handleChangeCollection} />
                     
                     {
                       form.type == "CUSTOMER" ? null : 
                       <>
-                        <CustomInput id="balanceInvoice" type="text" label="Balance Invoice" placeholder="Blance Invoice" value={form.balanceInvoice} onChange={handleChange} />
-                        <CustomInput id="cashDisc" type="text" label="Cash Discount" placeholder="Cash Discount" value={form.cashDisc} onChange={handleChange} />
+                        <CustomInput id="balanceInvoice" type="text" label="Balance Invoice" placeholder="Blance Invoice" value={detailDraft.balanceInvoice} onChange={handleChangeCollection} />
+                        <CustomInput id="cashDisc" type="text" label="Cash Discount" placeholder="Cash Discount" value={detailDraft.cashDisc} onChange={handleChangeCollection} />
                       </>  
                     }
-                    
                   </div>
                 )
               }
@@ -215,71 +259,154 @@ export default function CreatePaymentForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <CustomInput id="accNo" type="text" label="Account No." placeholder="Invoice Type" 
                 // REQUIRED LOGIC HERE
-                value={form.accNo} onChange={handleChange} />
+                value={detailDraft.accNo} onChange={handleChangeCollection} />
                 <CustomInput id="remarkDetail" type="text" label="Remarks Detail" placeholder="Remark Detail" 
                 // REQUIRED LOGIC HERE
-                value={form.remarkDetail} onChange={handleChange} />
+                value={detailDraft.remarkDetail} onChange={handleChangeCollection} />
                 <CustomInput id="proj" type="text" label="Project" placeholder="Project" 
                 // REQUIRED LOGIC HERE
-                value={form.proj} onChange={handleChange} />
+                value={detailDraft.proj} onChange={handleChangeCollection} />
                 
                 <CustomInput id="noFPK" type="text" label="No. FPK" placeholder="No. FPK" 
                 // REQUIRED LOGIC HERE
-                value={form.noFPK} onChange={handleChange} />
+                value={detailDraft.noFPK} onChange={handleChangeCollection} />
                 <CustomInput id="dept" type="text" label="Department" placeholder="Department" 
                 // REQUIRED LOGIC HERE
-                value={form.dept} onChange={handleChange} />
+                value={detailDraft.dept} onChange={handleChangeCollection} />
                 <CustomInput id="locPool" type="text" label="Lokasi Pool" placeholder="Lokasi Pool" 
                 // REQUIRED LOGIC HERE
-                value={form.locPool} onChange={handleChange} />
+                value={detailDraft.locPool} onChange={handleChangeCollection} />
                 <CustomInput id="d3" type="text" label="Dimension 3" placeholder="Dimension 3" 
                 // REQUIRED LOGIC HERE
-                value={form.d3} onChange={handleChange} />
+                value={detailDraft.d3} onChange={handleChangeCollection} />
                 <CustomInput id="d4" type="text" label="Dimension 4" placeholder="Dimension 4" 
                 // REQUIRED LOGIC HERE
-                value={form.d4} onChange={handleChange} />
+                value={detailDraft.d4} onChange={handleChangeCollection} />
                 <CustomInput id="d5" type="text" label="Dimension 5" placeholder="Dimension 5" 
                 // REQUIRED LOGIC HERE
-                value={form.d5} onChange={handleChange} />
+                value={detailDraft.d5} onChange={handleChangeCollection} />
               </div>
               }
             </TabItem>
           </Tabs>
           <div className="w-full flex justify-end">
-            <Button>Add</Button>
+            <Button onClick={handleAddDetail}>Add</Button>
           </div>
         </Card>
 
         {/* Table Section */}
-        <Card className="overflow-x-auto mt-6">
-            <Table striped>
+        <div className="overflow-x-auto">
+            <Table striped className="mr-10">
               <TableHead>
-                <TableHeadCell>#</TableHeadCell>
-                <TableHeadCell>Type</TableHeadCell>
-                <TableHeadCell>Entry</TableHeadCell>
-                <TableHeadCell>Invoice No.</TableHeadCell>
-                <TableHeadCell>Vendor</TableHeadCell>
-                <TableHeadCell>Field</TableHeadCell>
-                <TableHeadCell>Field</TableHeadCell>
-                <TableHeadCell>Field</TableHeadCell>
-                <TableHeadCell>Field</TableHeadCell>
+                {
+                  form.type == "VENDOR" ? 
+                  <>
+                    <TableHeadCell>Invoice Type</TableHeadCell>
+                    <TableHeadCell>invoice No</TableHeadCell>
+                    <TableHeadCell>Vendor References</TableHeadCell>
+
+                    {/* TIDAK ADA FIELD */}
+                    <TableHeadCell>Invoice Currencies</TableHeadCell>
+                    
+                    <TableHeadCell>Invoice Amount</TableHeadCell>
+                    <TableHeadCell>WTax Amount</TableHeadCell>
+
+                    <TableHeadCell>Cash Discount</TableHeadCell>
+                    <TableHeadCell>Payment Amount</TableHeadCell>
+                  </>
+                  :
+                  null
+                }
+
+                {
+                  form.type == "CUSTOMER" ? 
+                  <>
+                    <TableHeadCell>WTax Amount</TableHeadCell>
+                  </>
+                  :
+                  ""
+                }
+
+                {
+                  form.type == "ACCOUNT" ?  
+                  <>
+                    <TableHeadCell>Account No.</TableHeadCell>
+                    <TableHeadCell>Account Name</TableHeadCell>
+                    <TableHeadCell>Department</TableHeadCell>
+                    <TableHeadCell>No. Pool</TableHeadCell>
+                    <TableHeadCell>Dimension 3</TableHeadCell>
+                    <TableHeadCell>Dimension 4</TableHeadCell>
+                    <TableHeadCell>FPK</TableHeadCell>
+                    <TableHeadCell>Remark</TableHeadCell>
+                    <TableHeadCell>Payment Amount</TableHeadCell>
+                  </>
+                  :
+                  null
+                }
+
+                <TableHeadCell>Action</TableHeadCell>
+
               </TableHead>
               <TableBody>
                 {/* Rows will go here dynamically */}
-                <TableRow>
-                  <TableCell>1</TableCell>
-                  <TableCell>Sample</TableCell>
-                  <TableCell>001</TableCell>
-                  <TableCell>INV-2025</TableCell>
-                  <TableCell>Vendor A</TableCell>
-                  <TableCell>-</TableCell>
-                  <TableCell>-</TableCell>
-                  <TableCell>-</TableCell>
-                  <TableCell>-</TableCell>
-                </TableRow>
+                {
+                  collectData.map((item, idx) => (
+                    <TableRow>
+                      {
+                        form.type == "VENDOR" ?
+                        <>
+                          <TableCell>{collectData[idx].invType}</TableCell>
+                          <TableCell>{collectData[idx].invoiceNo}</TableCell>
+                          <TableCell>{collectData[idx].vendorRef}</TableCell>
+                          <TableCell>INVOICE CURRENCIES</TableCell>
+                          <TableCell>{collectData[idx].invoiceAmount}</TableCell>
+                          <TableCell>{collectData[idx].wTaxAmount}</TableCell>
+                          <TableCell>{collectData[idx].cashDisc}</TableCell>
+                          <TableCell>{collectData[idx].paymentAmount}</TableCell>
+                        </>
+                        :
+                        null
+                      }
+
+                      {/* TIDAK ADA FIELD */}
+
+                      {
+                        form.type == "CUSTOMER" ? 
+                        <>
+                          <TableCell>{collectData[idx].wTaxAmount}</TableCell>
+                        </>
+                        :
+                        null
+                      }
+                      
+                      
+
+                      
+                      
+                      {
+                        form.type == "ACCOUNT" ?
+                        <>
+                          <TableCell>{collectData[idx].accNo}</TableCell>
+                          <TableCell>Account Number</TableCell>
+                          <TableCell>{collectData[idx].dept}</TableCell>
+                          <TableCell>{collectData[idx].locPool}</TableCell>
+                          <TableCell>{collectData[idx].d3}</TableCell>
+                          <TableCell>{collectData[idx].d4}</TableCell>
+                          <TableCell>{collectData[idx].noFPK}</TableCell>
+                          <TableCell>{collectData[idx].remarkDetail}</TableCell>
+                          <TableCell>{collectData[idx].paymentAmount}</TableCell>
+                        </>
+                        :
+                        null
+                      }    
+
+                      <TableCell><CustomButton name="DELETE"/></TableCell> 
+                    </TableRow>
+                  ))
+                }
               </TableBody>
             </Table>
-        </Card>
+        </div>
         {/* Remarks Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <CustomInput id="remarks" label="Remarks" type="textArea" placeholder="Enter remarks" required={true} value={form.remarks} onChange={handleChange} />

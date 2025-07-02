@@ -80,7 +80,7 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
     U_REVACCNO: null,
     U_REVACCBANKNM: null,
     U_REVACCNM: null,
-    U_STATUS: form.status,
+    U_STATUS: "NEW", //Wajib ada isi (form.u_status)
     U_TOTALPAY: collection.reduce((a, b) => a + (parseFloat(b.paymentAmount) || 0), 0), //CHECK
     U_GRANDTOTAL: collection.reduce((a, b) => a + (parseFloat(b.paymentAmount) || 0), 0), //CHECK
     U_NOTES: form.remarks,

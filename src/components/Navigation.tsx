@@ -43,7 +43,7 @@ const customTheme = createTheme({
           </SidebarLogo>
 
           <SidebarItemGroup>
-              <SidebarCollapse label="Payment Request" open="true" icon={RiSecurePaymentFill}>
+              <SidebarCollapse label="Payment Request" open={true} icon={RiSecurePaymentFill}>
               <SidebarItem
                   as={Link}
                   to="/home"

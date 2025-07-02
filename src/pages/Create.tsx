@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   Card,
   Tabs,
@@ -13,9 +14,9 @@ import {
 } from "flowbite-react";
 import { CustomInput } from "../components/CustomInput";
 import { CustomButton } from "../components/CustomButton";
-import { useEffect, useRef, useState } from "react";
-import { Form } from "react-router-dom";
 import { buildPaymentRequestPayload } from "../service/buildPaymentRequestPayload";
+import axios from "axios";
+import dayjs from "dayjs";
 
 
 
@@ -25,13 +26,13 @@ export default function CreatePaymentForm() {
 
   const [form, setForm] = useState({
     no: "",
-    createDate: "",
+    createDate: new Date(),
     type: "VENDOR",
     means: "",
     currencies: "",
     status: "",
-    reqPayment: "",
-    postDate: "",
+    reqPaymentDate: new Date(),
+    postDate: new Date(),
     outgoingNum: "",
     coaSelect: "",
     coaInput: "",
@@ -64,7 +65,6 @@ export default function CreatePaymentForm() {
       dept: "",
       locPool: "",
       d3: "",
-
       d4: "",
       d5: "",
     });
@@ -82,6 +82,14 @@ export default function CreatePaymentForm() {
     }
   }
 
+  function handleDateChange(date: Date | null, id: string) {
+    console.log('DATE PICKED:', id, date);
+    setForm((prev) => ({
+      ...prev,
+      [id]: date,
+    }));
+  }
+
 
   function handleChangeCollection(e) {
     const { name, value } = e.target;
@@ -91,10 +99,24 @@ export default function CreatePaymentForm() {
     }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const data = buildPaymentRequestPayload(form, collectData)
+    console.log(form.createDate);
+    
+    const data = buildPaymentRequestPayload(form, collectData);
     console.log(data);
+    
+    try {
+    const response = await axios.post(
+      "http://localhost:80/api/v1/payment-request",
+      data
+    );
+      console.log("Sukses:", response.data);
+      alert("Payment Request berhasil dibuat!");
+    } catch (error) {
+      console.error("Gagal:", error.response?.data || error.message);
+      alert("Gagal membuat Payment Request");
+    }
   }
 
 function handleAddDetail() {
@@ -123,21 +145,6 @@ function handleAddDetail() {
   const lastIndex = collectData.length - 1;
   const lastData = lastIndex >= 0 ? collectData[lastIndex] : {};
 
-
-  const dataTesting = [
-    {
-      value: "2600",
-      label: "Data 1"
-    },
-    {
-      value: "2601",
-      label: "Data 2"
-    },
-    {
-      value: "2602",
-      label: "Data 3"
-    }
-  ];
 
   const dataType = [
     {
@@ -168,8 +175,8 @@ function handleAddDetail() {
           </div>
           <div className="flex pl-5">
             <div className="h-full grid grid-cols-2 gap-5 content-start">
-              <CustomInput id="reqPayment" type="date" label="Request Payment" placeholder="Request Payment Date" required={true} value={form.reqPayment} onChange={handleChange} />
-              <CustomInput id="postDate" type="date" label="Posting Date" placeholder="Posting Date" required={true} value={form.postDate} onChange={handleChange} />
+              <CustomInput id="reqPaymentDate" type="date" label="Request Payment" placeholder="Request Payment Date" required={true} date={form.reqPaymentDate} onDateChange={handleDateChange} />
+              <CustomInput id="postDate" type="date" label="Posting Date" placeholder="Posting Date" required={true} date={form.postDate} onDateChange={handleDateChange} />
             </div>
           </div>
         </div>
@@ -178,7 +185,7 @@ function handleAddDetail() {
           {/* Section Payment No. */}
           <Card>
             <div className="grid gap-2">
-              <CustomInput id="createDate" type="date" label="Create Date" placeholder="Create Date" required={true} value={form.createDate} onChange={handleChange} />
+              <CustomInput id="createDate" type="date" label="Create Date" placeholder="Create Date" required={true} date={form.createDate} onDateChange={handleDateChange} />
 
               <CustomInput id="no" type="text" label="Payment No." placeholder="Payment No." required={true} value={form.no} onChange={handleChange} />
 

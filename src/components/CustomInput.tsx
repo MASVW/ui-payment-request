@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { Label, Textarea, TextInput, Select, Datepicker } from "flowbite-react";
 
 interface OptionItem {
@@ -6,6 +7,7 @@ interface OptionItem {
 }
 
 interface CustomInputInterface {
+  date?: Date | null;
   id: string;
   disable?: boolean;
   label: string;
@@ -16,9 +18,10 @@ interface CustomInputInterface {
   value: string
   value2?: string
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  onDateChange?: (date: Date | null, id: string) => void;
 }
 
-export function CustomInput({ id, disable = false, label, type, placeholder, required = false, data = [], value, value2, onChange }: CustomInputInterface) {
+export function CustomInput({ id, disable = false, label, type, placeholder, required = false, data = [], value, value2, onChange, onDateChange, date}: CustomInputInterface) {
   let inputComponent;
 
   if (type === "textArea") {
@@ -37,7 +40,12 @@ export function CustomInput({ id, disable = false, label, type, placeholder, req
     );
   } else if (type === "date") {
     inputComponent = (
-      <Datepicker showClearButton={true} showTodayButton={true} />
+      <Datepicker
+          value={date}
+          onChange={(d) => onDateChange && onDateChange(d, id)}
+          showClearButton
+          showTodayButton
+        />
     )
   }
   else if (type === "twoInput") {

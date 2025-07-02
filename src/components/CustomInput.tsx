@@ -14,10 +14,11 @@ interface CustomInputInterface {
   required?: boolean;
   data?: OptionItem[];
   value: string
+  value2?: string
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
-export function CustomInput({ id, disable = false, label, type, placeholder, required = false, data = [], value, onChange }: CustomInputInterface) {
+export function CustomInput({ id, disable = false, label, type, placeholder, required = false, data = [], value, value2, onChange }: CustomInputInterface) {
   let inputComponent;
 
   if (type === "textArea") {
@@ -27,12 +28,11 @@ export function CustomInput({ id, disable = false, label, type, placeholder, req
   } else if (type === "select") {
     inputComponent = (
       <Select name={id} disabled={disable} id={id} required={required} value={value} onChange={onChange}>
-        <option value="">Please select an option</option>
-        {data.map((item, index) => (
-          <option key={index} value={item.value}>
-            {item.label}
-          </option>
-        ))}
+          {data.map((item, index) => (
+            <option key={index} value={item.value}>
+              {item.label}
+            </option>
+          ))}
       </Select>
     );
   } else if (type === "date") {
@@ -72,14 +72,13 @@ export function CustomInput({ id, disable = false, label, type, placeholder, req
             type="text"
             placeholder={placeholder}
             required={required}
-            value={value}
+            value={value2}
             onChange={onChange}
           />
         </div>
       </div>
     );
-  }
-  else {
+  } else {
     inputComponent = (
       <TextInput
         name={id} disabled={disable} id={id}

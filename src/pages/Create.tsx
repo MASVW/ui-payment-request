@@ -9,19 +9,22 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  createTheme,
+  type TabsRef
 } from "flowbite-react";
 import { CustomInput } from "../components/CustomInput";
 import { CustomButton } from "../components/CustomButton";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Form } from "react-router-dom";
 
 
 export default function CreatePaymentForm() {
+  const tabsRef = useRef<TabsRef>(null);
+  const [activeTab, setActiveTab] = useState(0);
 
   const [form, setForm] = useState({
     no: "",
     createDate: "",
-    type: "",
+    type: "VENDOR",
     means: "",
     currencies: "",
     status: "",
@@ -53,6 +56,8 @@ export default function CreatePaymentForm() {
     d3: "",
     d4: "",
     d5: "",
+    remarks: "",
+    approval: ""
   });
 
   function handleChange(e) {
@@ -61,6 +66,9 @@ export default function CreatePaymentForm() {
       ...prev,
       [name]: value,
     }));
+    if (name === "type") {
+      tabsRef.current?.setActiveTab(value === "ACCOUNT" ? 1 : 0);
+    }
   }
 
 
@@ -81,6 +89,21 @@ export default function CreatePaymentForm() {
     {
       value: "2602",
       label: "Data 3"
+    }
+  ];
+
+  const dataType = [
+    {
+      value: "VENDOR",
+      label: "Vendor"
+    },
+    {
+      value: "CUSTOMER",
+      label: "Customer"
+    },
+    {
+      value: "ACCOUNT",
+      label: "Account"
     }
   ];
   return (
@@ -112,7 +135,7 @@ export default function CreatePaymentForm() {
               <CustomInput id="no" type="text" label="Payment No." placeholder="Payment No." required={true} value={form.no} onChange={handleChange} />
 
               {/* SECTION Type */}
-              <CustomInput id="type" type="select" label="Type" placeholder="Type" required={true} data={dataTesting} value={form.type} onChange={handleChange} />
+              <CustomInput id="type" type="select" label="Type" placeholder="Type" required={true} data={dataType} value={form.type} onChange={handleChange} />
 
               <CustomInput id="means" type="text" label="Payment Means" placeholder="Payment Means" required={true} value={form.means} onChange={handleChange} />
               <CustomInput id="currencies" type="text" label="Doc Currency" placeholder="Doc Currency" required={true} value={form.currencies} onChange={handleChange} />
@@ -121,11 +144,20 @@ export default function CreatePaymentForm() {
           <Card>
             <div className="grid gap-y-4">
               <div className="grid grid-col-2 gap-y-4">
-                <CustomInput id="coa" type="twoInput" label="COA" placeholder="COA" required={true} data={dataTesting} value={form.coa} onChange={handleChange} />
+                
+                <CustomInput id="coa" type="twoInput" label="COA" placeholder="COA" required={true} value={form.coaSelect} value2={form.coaInput} onChange={handleChange} />
                 {/* WHILE TYPE = CUSTOMER, IT SUPPOSE TO BE HIDE */}
-                <CustomInput id="bpCode" type="twoInput" label="BP Code" placeholder="BP Code" required={true} value={form.bpCode} onChange={handleChange} />
+                {
+                  form.type ==  "ACCOUNT" 
+                  ? 
+                    ''
+                  :
+                   (
+                     <CustomInput id="bpCode" type="twoInput" label="BP Code" placeholder="BP Code" required={true} value={form.bpCodeSelect} value2={form.bpCodeInput} onChange={handleChange} />
+                   )
+                }
 
-                <CustomInput id="Bank Account" type="twoInput" label="Bank Account" placeholder="Bank Account" required={true} value={form.bankAcc} onChange={handleChange} />
+                <CustomInput id="bankAcc" type="twoInput" label="Bank Account" placeholder="Bank Account" required={true} value={form.bankAccSelect} value2={form.bankAccInput} onChange={handleChange} />
               </div>
               <div className="grid gap-y-4">
                 <CustomInput id="checkNo" type="text" label="Check No." placeholder="Check No." required={true} value={form.checkNo} onChange={handleChange} />
@@ -140,36 +172,47 @@ export default function CreatePaymentForm() {
 
         {/* Tabs Section */}
         <Card>
-          <Tabs aria-label="Full width tabs" variant="default">
+          <Tabs aria-label="Full width tabs" variant="default" ref={tabsRef} onActiveTabChange={(tab) => setActiveTab(tab)}>
             {/* WHILE TYPE == ACCOUNT, IT SUPPOSED TO BE DISABLED */}
-            <TabItem active title="Invoice" disabled >
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-y-1 gap-x-5 mb-4">
-                <CustomInput id="invType" type="text" label="Invoice Type" placeholder="Invoice Type" 
-                // REQUIRED LOGIC HERE
-                value={form.invType} onChange={handleChange} />
-                <CustomInput id="invoiceNo" type="text" label="Invoice No." placeholder="Invoice No." 
-                // REQUIRED LOGIC HERE
-                value={form.invoiceNo} onChange={handleChange} />
-                <CustomInput id="vendorRef" type="text" label="Vendor Ref No." placeholder="Vendor Ref No." 
-                // REQUIRED LOGIC HERE
-                value={form.vendorRef} onChange={handleChange} />
-                <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" 
-                // REQUIRED LOGIC HERE
-                value={form.invoiceAmount} onChange={handleChange} />
-                <CustomInput id="paymentAmount" type="text" label="Payment Amount" placeholder="Payment Amount" 
-                // REQUIRED LOGIC HERE
-                value={form.paymentAmount} onChange={handleChange} />
-                <CustomInput id="balanceInvoice" type="text" label="Balance Invoice" placeholder="Blance Invoice" 
-                // REQUIRED LOGIC HERE
-                value={form.balanceInvoice} onChange={handleChange} />
-                <CustomInput id="cashDisc" type="text" label="Cash Discount" placeholder="Cash Discount" 
-                // REQUIRED LOGIC HERE
-                value={form.cashDisc} onChange={handleChange} />
-              </div>
+            <TabItem 
+                active 
+                title="Invoice" 
+                disabled={form.type === "ACCOUNT"}
+              >
+              {
+                form.type == "ACCOUNT" ? null :
+                (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-y-1 gap-x-5 mb-4">
+                    {
+                      form.type == "CUSTOMER" ? null : 
+                      <>
+                        <CustomInput id="invType" type="text" label="Invoice Type" placeholder="Invoice Type" value={form.invType} onChange={handleChange} />
+                        <CustomInput id="invoiceNo" type="text" label="Invoice No." placeholder="Invoice No." value={form.invoiceNo} onChange={handleChange} />
+                      </>  
+                    }
+                    
+                    <CustomInput id="vendorRef" type="text" label="Vendor Ref No." placeholder="Vendor Ref No." value={form.vendorRef} onChange={handleChange} />
+                    {/* <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" value={form.invoiceAmount} onChange={handleChange} /> */}
+                    <CustomInput id="wTaxAmount" type="text" label="W Tax Amount" placeholder="W Tax Amount" value={form.wTaxAmount} onChange={handleChange} />
+                    <CustomInput id="paymentAmount" type="text" label="Payment Amount" placeholder="Payment Amount" value={form.paymentAmount} onChange={handleChange} />
+                    
+                    {
+                      form.type == "CUSTOMER" ? null : 
+                      <>
+                        <CustomInput id="balanceInvoice" type="text" label="Balance Invoice" placeholder="Blance Invoice" value={form.balanceInvoice} onChange={handleChange} />
+                        <CustomInput id="cashDisc" type="text" label="Cash Discount" placeholder="Cash Discount" value={form.cashDisc} onChange={handleChange} />
+                      </>  
+                    }
+                    
+                  </div>
+                )
+              }
             </TabItem>
 
-            <TabItem title="Account">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <TabItem title="Account" disabled={form.type == "VENDOR" || form.type == "CUSTOMER" ? true : false}>
+              {
+                form.type == "VENDOR" || form.type == "CUSTOMER" ? "" :
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <CustomInput id="accNo" type="text" label="Account No." placeholder="Invoice Type" 
                 // REQUIRED LOGIC HERE
                 value={form.accNo} onChange={handleChange} />
@@ -179,12 +222,7 @@ export default function CreatePaymentForm() {
                 <CustomInput id="proj" type="text" label="Project" placeholder="Project" 
                 // REQUIRED LOGIC HERE
                 value={form.proj} onChange={handleChange} />
-                <CustomInput id="wTaxAmount" type="text" label="W Tax Amount" placeholder="W Tax Amount" 
-                // REQUIRED LOGIC HERE
-                value={form.wTaxAmount} onChange={handleChange} />
-                <CustomInput id="paymentAmount" type="text" label="Payment Amount" placeholder="Payment Amount" 
-                // REQUIRED LOGIC HERE
-                value={form.paymentAmount} onChange={handleChange} />
+                
                 <CustomInput id="noFPK" type="text" label="No. FPK" placeholder="No. FPK" 
                 // REQUIRED LOGIC HERE
                 value={form.noFPK} onChange={handleChange} />
@@ -204,6 +242,7 @@ export default function CreatePaymentForm() {
                 // REQUIRED LOGIC HERE
                 value={form.d5} onChange={handleChange} />
               </div>
+              }
             </TabItem>
           </Tabs>
           <div className="w-full flex justify-end">

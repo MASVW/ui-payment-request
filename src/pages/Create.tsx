@@ -13,17 +13,31 @@ import {
   type TabsRef
 } from "flowbite-react";
 import { CustomInput } from "../components/CustomInput";
+import { ChooseFromListModal } from "../components/ChooseFromModal"
 import { CustomButton } from "../components/CustomButton";
 import { buildPaymentRequestPayload } from "../service/buildPaymentRequestPayload";
 import axios from "axios";
-import dayjs from "dayjs";
 
 
 
 export default function CreatePaymentForm() {
+  const dataType = [
+    {
+      value: "VENDOR",
+      label: "Vendor"
+    },
+    {
+      value: "CUSTOMER",
+      label: "Customer"
+    },
+    {
+      value: "ACCOUNT",
+      label: "Account"
+    }
+  ];
+
   const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState(0);
-
   const [form, setForm] = useState({
     no: "",
     createDate: new Date(),
@@ -45,9 +59,8 @@ export default function CreatePaymentForm() {
     remarks: "",
     approval: ""
   });
-
+  const [openBpModal, setOpenBpModal] = useState(false)
   const [collectData, setCollectData] = useState([]);
-
   const [detailDraft, setDetailDraft] = useState(
     {
       invType: "",
@@ -67,9 +80,11 @@ export default function CreatePaymentForm() {
       d3: "",
       d4: "",
       d5: "",
-    });
-
-
+  });
+  const [invoiceData, setInvoiceData] = useState([]);
+  const [bpList, setBpList] = useState<any[]>([]);
+  //FUNCTION
+  
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -81,16 +96,12 @@ export default function CreatePaymentForm() {
       setCollectData([]);
     }
   }
-
   function handleDateChange(date: Date | null, id: string) {
-    console.log('DATE PICKED:', id, date);
     setForm((prev) => ({
       ...prev,
       [id]: date,
     }));
   }
-
-
   function handleChangeCollection(e) {
     const { name, value } = e.target;
     setDetailDraft((prev) => ({
@@ -98,7 +109,52 @@ export default function CreatePaymentForm() {
       [name]: value,
     }));
   }
+  async function handleTypeChange(e) {
+    const { name, value } = e.target;
+    setForm((prev) => {
+      const updatedForm = {
+        ...prev,
+        [name]: value,
+    };
 
+    if (updatedForm.bpCodeSelect && detailDraft.invType) {
+      getPurchaseInvoice(updatedForm.bpCodeInput).then((data) => {
+        setInvoiceData(data);
+      });
+    }
+    console.log(invoiceData)
+    return updatedForm;
+  });}
+  
+  async function handleInvoiceTypeChange(e) {
+  const { name, value } = e.target;
+  setDetailDraft((prev) => {
+    const DetailDraft = {
+      ...prev,
+      [name]: value,
+    };
+
+    if (form.bpCodeSelect && updatedForm.invType) {
+      getPurchaseInvoice(form.bpCodeSelect).then((data) => {
+        setInvoiceData(data);
+      });
+    }
+    console.log(invoiceData)
+    return DetailDraft;
+  });}
+
+  async function getPurchaseInvoice(cardCode : string) {
+      try {
+        const response = await axios.get(
+          `http://localhost:80/api/v1/purchase-invoice/${cardCode}`,
+        );
+        console.log(response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Gagal:", error.message);
+        alert("Gagal Mengambil Data");
+    }
+  }
   async function handleSubmit(e) {
     e.preventDefault();
     console.log(form.createDate);
@@ -118,8 +174,7 @@ export default function CreatePaymentForm() {
       alert("Gagal membuat Payment Request");
     }
   }
-
-function handleAddDetail() {
+  function handleAddDetail() {
   setCollectData(prev => [...prev, detailDraft]);
   setDetailDraft({
     invType: "",
@@ -142,24 +197,48 @@ function handleAddDetail() {
   });
   }
 
+  async function getBpCode() {
+      try {
+        const response = await axios.get(
+          `http://localhost:80/api/v1/business-partners-formatted?top=20`,
+        );
+        console.log(response.data.data);
+        setBpList(response.data.data);
+      } catch (error) {
+        console.error("Gagal:", error.message);
+        alert("Gagal Mengambil Data");
+    }
+  }
+  
+
+  //VARIABEL
+
+  useEffect(()=>{
+    getBpCode();
+  }, []);
+
+const invoiceType = {
+  VENDOR: [
+    { value: "AP", label: "AP" },
+    { value: "APDP", label: "APDP" },
+    { value: "APCN", label: "APCN" }
+  ],
+  CUSTOMER: [
+    { value: "AR", label: "AR" },
+    { value: "ARDP", label: "ARDP" },
+    { value: "ARCN", label: "ARCN" }
+  ],
+  ACCOUNT: [
+    { value: "OTHER", label: "OTHER" }
+  ]};
+  const columns = [
+    { key: "CardCode", label: "BP Code" },
+    { key: "CardName", label: "BP Name" },
+    { key: "ContactPerson", label: "PIC" },
+  ];
+
   const lastIndex = collectData.length - 1;
   const lastData = lastIndex >= 0 ? collectData[lastIndex] : {};
-
-
-  const dataType = [
-    {
-      value: "VENDOR",
-      label: "Vendor"
-    },
-    {
-      value: "CUSTOMER",
-      label: "Customer"
-    },
-    {
-      value: "ACCOUNT",
-      label: "Account"
-    }
-  ];
 
   return (
     <form onSubmit={handleSubmit}>
@@ -208,7 +287,18 @@ function handleAddDetail() {
                     ''
                   :
                    (
-                     <CustomInput id="bpCode" type="twoInput" label="BP Code" placeholder="BP Code" required={true} value={form.bpCodeSelect} value2={form.bpCodeInput} onChange={handleChange} />
+                     <>
+                      <CustomButton name="Open" onClick={() => (setOpenBpModal(true))} />
+                      <CustomInput id="bpCode" type="twoInput" label="BP Code" placeholder="BP Code" required={true} value={form.bpCodeSelect} value2={form.bpCodeInput} onChange={handleChange} />
+                      <ChooseFromListModal
+                            open={openBpModal}
+                            onClose={() => setOpenBpModal(false)}
+                            onSelect={(bp) => setSelectedBp(bp)}
+                            data={bpList}
+                            columns={columns}
+                            title="Pilih Business Partner"
+                          />
+                      </>
                    )
                 }
 
@@ -238,8 +328,9 @@ function handleAddDetail() {
                     {
                       form.type == "CUSTOMER" ? null : 
                       <>
-                        <CustomInput id="invType" type="text" label="Invoice Type" placeholder="Invoice Type" value={detailDraft.invType} onChange={handleChangeCollection} />
-                        <CustomInput id="invoiceNo" type="text" label="Invoice No." placeholder="Invoice No." value={detailDraft.invoiceNo} onChange={handleChangeCollection} />
+                        <CustomInput id="invType" type="select" label="Invoice Type" placeholder="Invoice Type" value={detailDraft.invType} onChange={handleInvoiceTypeChange} data={invoiceType[form.type]}/>
+                        {/* <CustomInput id="invoiceNo" type="select" label="Invoice No." placeholder="Invoice No." value={detailDraft.invoiceNo} onChange={handleChangeCollection} /> */}
+                        
                       </>  
                     }
                     

@@ -18,7 +18,7 @@ interface CustomInputInterface {
   value: string
   value2?: string
   onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  onDateChange?: (date: Date | null, id: string) => void;
+  onDateChange: (date: Date | null, id: string) => void;
 }
 
 export function CustomInput({ id, disable = false, label, type, placeholder, required = false, data = [], value, value2, onChange, onDateChange, date}: CustomInputInterface) {
@@ -42,7 +42,7 @@ export function CustomInput({ id, disable = false, label, type, placeholder, req
     inputComponent = (
       <Datepicker
           value={date}
-          onChange={(d) => onDateChange && onDateChange(d, id)}
+          onChange={(d) => onDateChange(d, id)}
           showClearButton
           showTodayButton
         />

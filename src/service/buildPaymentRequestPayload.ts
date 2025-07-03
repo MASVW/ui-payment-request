@@ -6,8 +6,8 @@ type FormItem = {
     means: string,
     currencies: string,
     status: string,
-    reqPayment: string,
-    postDate: string,
+    reqPaymentDate: Date,
+    postDate: Date,
     outgoingNum: string,
     coaSelect: string,
     coaInput: string,
@@ -44,6 +44,13 @@ type CollectionItem = {
     wTaxAmount: string
 };
 
+function toLocalYMD(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // bulan 0-indexed!
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 type CollectionData = CollectionItem[];
 
 export function buildPaymentRequestPayload(form: FormItem, collection: CollectionData) {
@@ -62,7 +69,7 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
     LogInst: null,
     UserSign: null,
     Transfered: "N",
-    CreateDate: form.createDate,
+    CreateDate: toLocalYMD(form.createDate),
     CreateTime: dayjs().format('HH:mm:ss'),         
     UpdateDate: null,
     UpdateTime: null,
@@ -86,9 +93,9 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
     U_NOTES: form.remarks,
     U_NOTESAPP: null,
     U_OUTPAYNO: form.outgoingNum,
-    U_CREATEDT: form.createDate,
-    U_REQPAYDT: form.reqPayment,
-    U_POSTDT: form.postDate,
+    U_CREATEDT: toLocalYMD(form.createDate),
+    U_REQPAYDT: toLocalYMD(form.reqPaymentDate),
+    U_POSTDT: toLocalYMD(form.postDate),
     U_CHECKNO: form.checkNo || null,
     U_OUTPAYENTRY: null,
     U_PAYCURR: form.currencies,
@@ -106,16 +113,16 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
       Object: "UDO_PAY_REQ",
       LogInst: null,
       U_INVOICENO: item.invoiceNo,
-      U_INVOICEAMT: Number(item.invoiceAmount) || 0,
+      U_INVOICEAMT: Number(item.invoiceAmount),
       U_CASHDISC: Number(item.cashDisc) || 0,
-      U_PAYMENTAMT: Number(item.paymentAmount) || 0,
+      U_PAYMENTAMT: Number(item.paymentAmount),
       U_ACCOUNTCODE: item.accNo || null,
       U_ACCOUNTNM: item.accName || null,
       U_VENDORREFNO: item.vendorRef || null,
       U_INVDUEDATE: item.invoiceDue || null,
-      U_INVOICEENTRY: item.invoiceEntry || null,
+      U_INVOICEENTRY: item.invoiceEntry || 70733, //ADD LISTING ITEM
       U_INVOICETYPE: item.invType || null,
-      U_INVOICECURR: item.invoiceCurr || null,
+      U_INVOICECURR: item.invoiceCurr || 'IDR',
       U_PLANT: item.plant || null,
       U_MESIN: item.mesin || null,
       U_DEPT: item.dept || null,

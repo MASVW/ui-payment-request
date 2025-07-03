@@ -3,10 +3,11 @@ import { Button } from "flowbite-react";
 interface CustomButtonProps {
   name: string;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
-  type?: string
+  type?: string,
+  onClick?: any
 }
 
-export function CustomButton({ name, size, type}: CustomButtonProps) {
+export function CustomButton({ name, size, type, onClick}: CustomButtonProps) {
   return (
     <>
       {
@@ -19,7 +20,7 @@ export function CustomButton({ name, size, type}: CustomButtonProps) {
         :
         (
           <div className="flex flex-wrap items-start gap-2">
-            <Button size={size}>{name}</Button>
+            <Button size={size} onClick={onClick}>{name}</Button>
           </div>
         )
       } 

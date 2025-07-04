@@ -17,8 +17,7 @@ import { ChooseFromListModal } from "../components/ChooseFromModal"
 import { CustomButton } from "../components/CustomButton";
 import { buildPaymentRequestPayload } from "../service/buildPaymentRequestPayload";
 import axios from "axios";
-
-
+import route from "../service/routeMapping";
 
 export default function CreatePaymentForm() {
   const dataType = [
@@ -35,7 +34,6 @@ export default function CreatePaymentForm() {
       label: "Account"
     }
   ];
-
   const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState({
@@ -60,6 +58,7 @@ export default function CreatePaymentForm() {
     approval: ""
   });
   const [openBpModal, setOpenBpModal] = useState(false)
+  const [bpLoading, setBpLoading] = useState(true);
   const [collectData, setCollectData] = useState([]);
   const [detailDraft, setDetailDraft] = useState(
     {
@@ -83,7 +82,10 @@ export default function CreatePaymentForm() {
   });
   const [invoiceData, setInvoiceData] = useState([]);
   const [bpList, setBpList] = useState<any[]>([]);
-  //FUNCTION
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [bpKeyword, setBpKeyword] = useState("");
+
   
   function handleChange(e) {
     const { name, value } = e.target;
@@ -145,9 +147,10 @@ export default function CreatePaymentForm() {
 
   async function getPurchaseInvoice(cardCode : string) {
       try {
-        const response = await axios.get(
-          `http://localhost:80/api/v1/purchase-invoice/${cardCode}`,
-        );
+        const domain = import.meta.env.VITE_BACKEND
+        const path = route.purchaseInvoice.byCardCode(cardCode);
+        const endPoint = `${domain}${path}`;
+        const response = await axios.get(endPoint);
         console.log(response.data);
         return response.data;
       } catch (error) {
@@ -160,13 +163,12 @@ export default function CreatePaymentForm() {
     console.log(form.createDate);
     
     const data = buildPaymentRequestPayload(form, collectData);
-    console.log(data);
     
     try {
-    const response = await axios.post(
-      "http://localhost:80/api/v1/payment-request",
-      data
-    );
+      const domain = import.meta.env.VITE_BACKEND
+      const path = route.paymentRequest.create() || null;
+      const endPoint = `${domain}${path}`
+      const response = await axios.post(endPoint, data);
       console.log("Sukses:", response.data);
       alert("Payment Request berhasil dibuat!");
     } catch (error) {
@@ -174,6 +176,7 @@ export default function CreatePaymentForm() {
       alert("Gagal membuat Payment Request");
     }
   }
+
   function handleAddDetail() {
   setCollectData(prev => [...prev, detailDraft]);
   setDetailDraft({
@@ -197,25 +200,45 @@ export default function CreatePaymentForm() {
   });
   }
 
-  async function getBpCode() {
+  async function getBpCode(page: number, keyword = "") {
+    setBpLoading(true);
       try {
-        const response = await axios.get(
-          `http://localhost:80/api/v1/business-partners-formatted?top=20`,
-        );
-        console.log(response.data.data);
-        setBpList(response.data.data);
+        const limit = 50;
+        const domain = import.meta.env.VITE_BACKEND;
+        const url = route.businessPartner.all(page, limit, keyword);
+        const endpoint = `${domain}${url}`;
+
+        console.log(endpoint)
+        
+        const response = await axios.get(endpoint);      
+        
+        setBpList(response.data.data.value);
+        setTotalPages(Math.ceil(response.data.data.jumlah / limit));
       } catch (error) {
         console.error("Gagal:", error.message);
         alert("Gagal Mengambil Data");
-    }
+    } finally {
+      setBpLoading(false);
   }
-  
+  }
 
   //VARIABEL
+  useEffect(() => {
+  if (openBpModal) {
+    const handler = setTimeout(() => {
+      console.log(bpKeyword);
+      getBpCode(currentPage, bpKeyword);
+    }, 400); // 400ms debounce
+    return () => clearTimeout(handler);
+  }
+}, [openBpModal, currentPage, bpKeyword]);
 
-  useEffect(()=>{
-    getBpCode();
-  }, []);
+  useEffect(() => {
+    if (!openBpModal) {
+      setCurrentPage(1);
+      setBpList([]);
+    }
+  }, [openBpModal]);
 
 const invoiceType = {
   VENDOR: [
@@ -297,6 +320,12 @@ const invoiceType = {
                             data={bpList}
                             columns={columns}
                             title="Pilih Business Partner"
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            loading={bpLoading}
+                            bpKeyword={bpKeyword}
+                            onKeywordChange={setBpKeyword}
                           />
                       </>
                    )
@@ -329,7 +358,6 @@ const invoiceType = {
                       form.type == "CUSTOMER" ? null : 
                       <>
                         <CustomInput id="invType" type="select" label="Invoice Type" placeholder="Invoice Type" value={detailDraft.invType} onChange={handleInvoiceTypeChange} data={invoiceType[form.type]}/>
-                        {/* <CustomInput id="invoiceNo" type="select" label="Invoice No." placeholder="Invoice No." value={detailDraft.invoiceNo} onChange={handleChangeCollection} /> */}
                         
                       </>  
                     }

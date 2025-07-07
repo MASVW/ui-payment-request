@@ -27,7 +27,7 @@ export interface RouteObject {
 
 const route: RouteObject = {
   businessPartner: {
-    all: (pages = 1, limit = 20, keyword = "") => `/api/v1/business-partners-formatted?pages=${pages}&limit=${limit}${keyword ? `&keyword=${keyword}` : ""}`,
+    all: (pages = 1, limit = 20, keyword = "", cardtype="VENDOR") => `/api/v1/business-partners-formatted?pages=${pages}&limit=${limit}&cardtype=${cardtype}&${keyword ? `&keyword=${keyword}` : ""}`,
     allFormatted: (pages = 1, limit = 20) => `/api/v1/business-partners-formatted?pages=${pages}&limit=${limit}`,
     byId: (id) => `/api/v1/business-partners/${id}`,
     byIdFormatted: (id) => `/api/v1/business-partners-formatted/${id}`,

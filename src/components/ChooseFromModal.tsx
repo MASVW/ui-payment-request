@@ -29,7 +29,7 @@ export function ChooseFromListModal<T = any>({
   columns,
   title = "Choose Data",
   currentPage,
-  totalPages,
+  totalPages = 1,
   onPageChange,
   loading = false,
   onKeywordChange,
@@ -83,7 +83,7 @@ export function ChooseFromListModal<T = any>({
               ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={columns.length}>
-                    <div className="text-center py-6 text-gray-400">Data tidak ditemukan.</div>
+                   <div className="text-center py-6 text-gray-400">Data tidak ditemukan.</div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -106,10 +106,10 @@ export function ChooseFromListModal<T = any>({
         </div>
         <div className="flex overflow-x-auto sm:justify-center">
           <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-          />
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+            />
         </div>
       </ModalBody>
       <ModalFooter>

@@ -10,7 +10,9 @@ import {
   TableBody,
   TableRow,
   TableCell,
-  type TabsRef
+  type TabsRef,
+  Label,
+  TextInput
 } from "flowbite-react";
 import { CustomInput } from "../components/CustomInput";
 import { ChooseFromListModal } from "../components/ChooseFromModal"
@@ -20,20 +22,6 @@ import axios from "axios";
 import route from "../service/routeMapping";
 
 export default function CreatePaymentForm() {
-  const dataType = [
-    {
-      value: "VENDOR",
-      label: "Vendor"
-    },
-    {
-      value: "CUSTOMER",
-      label: "Customer"
-    },
-    {
-      value: "ACCOUNT",
-      label: "Account"
-    }
-  ];
   const tabsRef = useRef<TabsRef>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [form, setForm] = useState({
@@ -48,6 +36,7 @@ export default function CreatePaymentForm() {
     outgoingNum: "",
     coaSelect: "",
     coaInput: "",
+    bpCode: null,
     bpCodeSelect: "",
     bpCodeInput: "",
     bankAccSelect: "",
@@ -82,10 +71,18 @@ export default function CreatePaymentForm() {
   });
   const [invoiceData, setInvoiceData] = useState([]);
   const [bpList, setBpList] = useState<any[]>([]);
+  const [selectedBp, setSelectedBp] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [bpKeyword, setBpKeyword] = useState("");
 
+  function handleBpCode(bp: any){
+    setSelectedBp(bp);
+    setForm((prevForm) => ({
+      ...prevForm,
+      bpCode: bp
+    }))
+  }
   
   function handleChange(e) {
     const { name, value } = e.target;
@@ -136,7 +133,7 @@ export default function CreatePaymentForm() {
       [name]: value,
     };
 
-    if (form.bpCodeSelect && updatedForm.invType) {
+if (form.bpCodeSelect && updatedForm.invType) {
       getPurchaseInvoice(form.bpCodeSelect).then((data) => {
         setInvoiceData(data);
       });
@@ -200,20 +197,28 @@ export default function CreatePaymentForm() {
   });
   }
 
-  async function getBpCode(page: number, keyword = "") {
+  async function getBpCode(page: number, keyword = "", cardType = "") {
     setBpLoading(true);
       try {
         const limit = 50;
         const domain = import.meta.env.VITE_BACKEND;
-        const url = route.businessPartner.all(page, limit, keyword);
+        if (keyword != "") {
+          page = 1
+        }
+        cardType = form.type
+        console.log(cardType);
+        const url = route.businessPartner.all(page, limit, keyword, cardType);
         const endpoint = `${domain}${url}`;
-
-        console.log(endpoint)
-        
         const response = await axios.get(endpoint);      
         
         setBpList(response.data.data.value);
-        setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+        console.log(response.data.data.value);
+        
+        if(response.data.data.jumlah != 0){
+          setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+        } else {
+          setTotalPages(1);
+        }
       } catch (error) {
         console.error("Gagal:", error.message);
         alert("Gagal Mengambil Data");
@@ -226,9 +231,8 @@ export default function CreatePaymentForm() {
   useEffect(() => {
   if (openBpModal) {
     const handler = setTimeout(() => {
-      console.log(bpKeyword);
       getBpCode(currentPage, bpKeyword);
-    }, 400); // 400ms debounce
+    }, 400);
     return () => clearTimeout(handler);
   }
 }, [openBpModal, currentPage, bpKeyword]);
@@ -240,29 +244,62 @@ export default function CreatePaymentForm() {
     }
   }, [openBpModal]);
 
-const invoiceType = {
-  VENDOR: [
-    { value: "AP", label: "AP" },
-    { value: "APDP", label: "APDP" },
-    { value: "APCN", label: "APCN" }
-  ],
-  CUSTOMER: [
-    { value: "AR", label: "AR" },
-    { value: "ARDP", label: "ARDP" },
-    { value: "ARCN", label: "ARCN" }
-  ],
-  ACCOUNT: [
-    { value: "OTHER", label: "OTHER" }
-  ]};
+  useEffect(() => {
+    if(selectedBp){
+      console.log(selectedBp);
+    }
+  })
+
+  const invoiceType = {
+    VENDOR: [
+      { value: "AP", label: "AP" },
+      { value: "APDP", label: "APDP" },
+      { value: "APCN", label: "APCN" }
+    ],
+    CUSTOMER: [
+      { value: "AR", label: "AR" },
+      { value: "ARDP", label: "ARDP" },
+      { value: "ARCN", label: "ARCN" }
+    ],
+    ACCOUNT: [
+      { value: "OTHER", label: "OTHER" }
+    ]
+  };
+
   const columns = [
     { key: "CardCode", label: "BP Code" },
     { key: "CardName", label: "BP Name" },
     { key: "ContactPerson", label: "PIC" },
   ];
 
-  const lastIndex = collectData.length - 1;
-  const lastData = lastIndex >= 0 ? collectData[lastIndex] : {};
-
+    const dataType = [
+    {
+      value: "VENDOR",
+      label: "Vendor"
+    },
+    {
+      value: "CUSTOMER",
+      label: "Customer"
+    },
+    {
+      value: "ACCOUNT",
+      label: "Account"
+    }
+  ];
+  const paymentType = [
+    {
+      value: "CASH",
+      label: "Cash"
+    },
+    {
+      value: "BANK TRANSFER",
+      label: "Bank Transfer"
+    },
+    {
+      value: "CHECK",
+      label: "Check"
+    }
+  ];
   return (
     <form onSubmit={handleSubmit}>
       <div id="formCreateContent" className="grid grid-col-1 gap-y-5 mt-4 mb-5">
@@ -289,13 +326,48 @@ const invoiceType = {
             <div className="grid gap-2">
               <CustomInput id="createDate" type="date" label="Create Date" placeholder="Create Date" required={true} date={form.createDate} onDateChange={handleDateChange} />
 
-              <CustomInput id="no" type="text" label="Payment No." placeholder="Payment No." required={true} value={form.no} onChange={handleChange} />
-
               {/* SECTION Type */}
               <CustomInput id="type" type="select" label="Type" placeholder="Type" required={true} data={dataType} value={form.type} onChange={handleChange} />
 
-              <CustomInput id="means" type="text" label="Payment Means" placeholder="Payment Means" required={true} value={form.means} onChange={handleChange} />
-              <CustomInput id="currencies" type="text" label="Doc Currency" placeholder="Doc Currency" required={true} value={form.currencies} onChange={handleChange} />
+              <CustomInput id="means" type="select" label="Payment Means" required={true} value={form.means} onChange={handleChange} data={paymentType}/>
+
+              {
+                  form.type ==  "ACCOUNT" 
+                  ? 
+                    ''
+                  :
+                   (
+                     <>
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="bpCode">Select BP Code</Label>
+                        <div id="bpCode" className="flex gap-x-2">
+                          <Button name={form.type} onClick={() => (setOpenBpModal(true))}>{form.bpCode == null ?  "SELECT BP CODE" : form.bpCode.CardCode}</Button>
+                          <TextInput
+                            className="flex-1"
+                            type="text"
+                            disabled={true}
+                            value={form.bpCode == null ?  "Please select BP CODE" : form.bpCode.CardName}
+                          />
+                          <ChooseFromListModal
+                                open={openBpModal}
+                                onClose={() => setOpenBpModal(false)}
+                                onSelect={(bp) => handleBpCode(bp)}
+                                data={bpList}
+                                columns={columns}
+                                title="Pilih Business Partner"
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
+                                loading={bpLoading}
+                                bpKeyword={bpKeyword}
+                                onKeywordChange={setBpKeyword}
+                                />
+                            </div>
+                        </div>
+                      </>
+                   )
+                }
+              {/* <CustomInput id="currencies" type="text" label="Doc Currency" placeholder="Doc Currency" required={true} value={form.currencies} onChange={handleChange} /> */}
             </div>
           </Card>
           <Card>
@@ -304,32 +376,6 @@ const invoiceType = {
                 
                 <CustomInput id="coa" type="twoInput" label="COA" placeholder="COA" required={true} value={form.coaSelect} value2={form.coaInput} onChange={handleChange} />
                 {/* WHILE TYPE = CUSTOMER, IT SUPPOSE TO BE HIDE */}
-                {
-                  form.type ==  "ACCOUNT" 
-                  ? 
-                    ''
-                  :
-                   (
-                     <>
-                      <CustomButton name="Open" onClick={() => (setOpenBpModal(true))} />
-                      <CustomInput id="bpCode" type="twoInput" label="BP Code" placeholder="BP Code" required={true} value={form.bpCodeSelect} value2={form.bpCodeInput} onChange={handleChange} />
-                      <ChooseFromListModal
-                            open={openBpModal}
-                            onClose={() => setOpenBpModal(false)}
-                            onSelect={(bp) => setSelectedBp(bp)}
-                            data={bpList}
-                            columns={columns}
-                            title="Pilih Business Partner"
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                            loading={bpLoading}
-                            bpKeyword={bpKeyword}
-                            onKeywordChange={setBpKeyword}
-                          />
-                      </>
-                   )
-                }
 
                 <CustomInput id="bankAcc" type="twoInput" label="Bank Account" placeholder="Bank Account" required={true} value={form.bankAccSelect} value2={form.bankAccInput} onChange={handleChange} />
               </div>
@@ -504,11 +550,7 @@ const invoiceType = {
                         :
                         null
                       }
-                      
-                      
 
-                      
-                      
                       {
                         form.type == "ACCOUNT" ?
                         <>

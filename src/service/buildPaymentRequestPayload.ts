@@ -1,59 +1,87 @@
 import dayjs from "dayjs";
 type FormItem = {
-    no: any,
-    createDate: Date,
-    type: string,
-    means: string,
-    currencies: string,
-    status: string,
-    reqPaymentDate: Date,
-    postDate: Date,
-    outgoingNum: string,
-    coaSelect: string,
-    coaInput: string,
-    bpCodeSelect: string,
-    bpCodeInput: string,
-    bankAccSelect: string,
-    bankAccInput: string,
-    checkNo: string,
-    receiveNo: string,
-    remarks: string,
-    approval: string
+  no: any;
+  createDate: Date;
+  type: string;
+  means: string;
+  currencies: string;
+  status: string;
+  reqPaymentDate: Date;
+  postDate: Date;
+  outgoingNum: string;
+  coaSelect: string;
+  coaInput: string;
+  bpCode?: BpCollectionItem;
+  bpCodeSelect: string;
+  bpCodeInput: string;
+  bankAccSelect: string;
+  bankAccInput: string;
+  checkNo: string;
+  receiveNo: string;
+  remarks: string;
+  approval: string;
 };
 
 type CollectionItem = {
-    invoiceNo: string,
-    invoiceAmount: string,
-    cashDisc: string,
-    paymentAmount: string,
-    accNo: string,
-    accName: string,
-    vendorRef: string,
-    invoiceDue: string,
-    invoiceEntry: number,
-    invType: string,
-    invoiceCurr: string,
-    noFPK: string,
-    plant: string,
-    mesin: string,
-    dept: string,
-    remarkDetail: string,
-    proj: string,
-    d4: string,
-    d5: string,
-    wTaxAmount: string
+  invoiceNo: string;
+  invoiceAmount: string;
+  cashDisc: string;
+  paymentAmount: string;
+  accNo: string;
+  accName: string;
+  vendorRef: string;
+  invoiceDue: string;
+  invoiceEntry: number;
+  invType: string;
+  invoiceCurr: string;
+  noFPK: string;
+  plant: string;
+  mesin: string;
+  dept: string;
+  remarkDetail: string;
+  proj: string;
+  d4: string;
+  d5: string;
+  wTaxAmount: string;
+};
+
+type BpCollectionItem = {
+  CardCode: string;
+  CardName: string;
+  CardType: string;
+  GroupCode: number;
+  Address: string | null;
+  ZipCode: string | null;
+  MailAddress: string | null;
+  MailZipCode: string | null;
+  Phone1: string | null;
+  Phone2: string;
+  Fax: string;
+  ContactPerson: string;
+  Notes: string;
+  PayTermsGrpCode: number;
+  CreditLimit: number;
+  MaxCommitment: number;
+  DiscountPercent: number;
+  VatLiable: string;
+  FederalTaxID: string;
 };
 
 function toLocalYMD(date) {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // bulan 0-indexed!
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // bulan 0-indexed!
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
 type CollectionData = CollectionItem[];
 
-export function buildPaymentRequestPayload(form: FormItem, collection: CollectionData) {
+export function buildPaymentRequestPayload(
+  form: FormItem,
+  collection: CollectionData,
+) {
+  const bpCode = form.bpCode?.CardCode;
+  const bpName = form.bpCode?.CardName;
   return {
     DocNum: null,
     Period: null,
@@ -62,7 +90,7 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
     Handwrtten: "N",
     Status: "O",
     RequestStatus: "W",
-    Creator: "",        
+    Creator: "",
     Remark: form.remarks,
     Canceled: "N",
     Object: "UDO_PAY_REQ",
@@ -70,26 +98,32 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
     UserSign: null,
     Transfered: "N",
     CreateDate: toLocalYMD(form.createDate),
-    CreateTime: dayjs().format('HH:mm:ss'),         
+    CreateTime: dayjs().format("HH:mm:ss"),
     UpdateDate: null,
     UpdateTime: null,
-    DataSource: "S",        
-    U_SERRIESNAME: "BK102", //NO PLAT BK 
+    DataSource: "S",
+    U_SERRIESNAME: "BK102", //NO PLAT BK
     U_TYPE: form.type,
     U_PAYMEANS: form.means,
     U_COA: form.coaSelect,
     U_BANKACCCOMP: form.bankAccSelect,
     U_BANKACC: form.bankAccInput || null,
-    U_BPCODE: form.bpCodeSelect,
+    U_BPCODE: bpCode,
     U_COANAME: form.coaInput,
     U_BANKNAME: form.bankAccInput,
-    U_BPNAME: form.bpCodeInput,
+    U_BPNAME: bpName,
     U_REVACCNO: null,
     U_REVACCBANKNM: null,
     U_REVACCNM: null,
     U_STATUS: "NEW", //Wajib ada isi (form.u_status)
-    U_TOTALPAY: collection.reduce((a, b) => a + (parseFloat(b.paymentAmount) || 0), 0), //CHECK
-    U_GRANDTOTAL: collection.reduce((a, b) => a + (parseFloat(b.paymentAmount) || 0), 0), //CHECK
+    U_TOTALPAY: collection.reduce(
+      (a, b) => a + (parseFloat(b.paymentAmount) || 0),
+      0,
+    ), //CHECK
+    U_GRANDTOTAL: collection.reduce(
+      (a, b) => a + (parseFloat(b.paymentAmount) || 0),
+      0,
+    ), //CHECK
     U_NOTES: form.remarks,
     U_NOTESAPP: null,
     U_OUTPAYNO: form.outgoingNum,
@@ -122,7 +156,7 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
       U_INVDUEDATE: item.invoiceDue || null,
       U_INVOICEENTRY: item.invoiceEntry || 70733, //ADD LISTING ITEM
       U_INVOICETYPE: item.invType || null,
-      U_INVOICECURR: item.invoiceCurr || 'IDR',
+      U_INVOICECURR: item.invoiceCurr || "IDR",
       U_PLANT: item.plant || null,
       U_MESIN: item.mesin || null,
       U_DEPT: item.dept || null,
@@ -133,5 +167,5 @@ export function buildPaymentRequestPayload(form: FormItem, collection: Collectio
       U_WTAX: Number(item.wTaxAmount) || 0,
       U_FPK: item.noFPK || null,
     })),
-  }
+  };
 }

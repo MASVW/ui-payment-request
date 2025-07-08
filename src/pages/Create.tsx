@@ -12,10 +12,10 @@ import {
   TableCell,
   type TabsRef,
   Label,
-  TextInput
+  TextInput,
 } from "flowbite-react";
 import { CustomInput } from "../components/CustomInput";
-import { ChooseFromListModal } from "../components/ChooseFromModal"
+import { ChooseFromListModal } from "../components/ChooseFromModal";
 import { CustomButton } from "../components/CustomButton";
 import { buildPaymentRequestPayload } from "../service/buildPaymentRequestPayload";
 import axios from "axios";
@@ -28,62 +28,87 @@ export default function CreatePaymentForm() {
     no: "",
     createDate: new Date(),
     type: "VENDOR",
-    means: "",
-    currencies: "",
+    means: "CASH",
+    currencies: "IDR",
     status: "",
     reqPaymentDate: new Date(),
     postDate: new Date(),
     outgoingNum: "",
-    coaSelect: "",
-    coaInput: "",
+    coa: null,
     bpCode: null,
-    bpCodeSelect: "",
-    bpCodeInput: "",
-    bankAccSelect: "",
-    bankAccInput: "",
+    bank: null,
     checkNo: "",
     receiveNo: "",
     remarks: "",
-    approval: ""
+    approval: "",
   });
-  const [openBpModal, setOpenBpModal] = useState(false)
-  const [bpLoading, setBpLoading] = useState(true);
+  const [openBpModal, setOpenBpModal] = useState(false);
+  const [openCoaModal, setOpenCoaModal] = useState(false);
+  const [openBankModal, setOpenBankModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [detailDraft, setDetailDraft] = useState({
+    invType: "",
+    invoiceNo: "",
+    vendorRef: "",
+    invoiceAmount: "",
+    paymentAmount: "",
+    balanceInvoice: "",
+    cashDisc: "",
+    accNo: "",
+    remarkDetail: "",
+    proj: "",
+    wTaxAmount: "",
+    noFPK: "",
+    dept: "",
+    locPool: "",
+    d3: "",
+    d4: "",
+    d5: "",
+  });
+
   const [collectData, setCollectData] = useState([]);
-  const [detailDraft, setDetailDraft] = useState(
-    {
-      invType: "",
-      invoiceNo: "",
-      vendorRef: "",
-      invoiceAmount: "",
-      paymentAmount: "",
-      balanceInvoice: "",
-      cashDisc: "",
-      accNo: "",
-      remarkDetail: "",
-      proj: "",
-      wTaxAmount: "",
-      noFPK: "",
-      dept: "",
-      locPool: "",
-      d3: "",
-      d4: "",
-      d5: "",
-  });
   const [invoiceData, setInvoiceData] = useState([]);
+
   const [bpList, setBpList] = useState<any[]>([]);
+  const [coaList, setCoaList] = useState<any[]>([]);
+  const [bankList, setBankList] = useState<any[]>([]);
+
   const [selectedBp, setSelectedBp] = useState([]);
+  const [selectedCoa, setSelectedCoa] = useState([]);
+  const [selectedBank, setSelectedBank] = useState([]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [bpKeyword, setBpKeyword] = useState("");
 
-  function handleBpCode(bp: any){
+  const [bpKeyword, setBpKeyword] = useState("");
+  const [coaKeyword, setCoaKeyword] = useState("");
+  const [bankKeyword, setBankKeyword] = useState("");
+
+  function handleBpCode(bp: any) {
     setSelectedBp(bp);
     setForm((prevForm) => ({
       ...prevForm,
-      bpCode: bp
-    }))
+      bpCode: bp,
+    }));
   }
-  
+
+  function handleCoa(coa: any) {
+    setSelectedCoa(coa);
+    setForm((prevForm) => ({
+      ...prevForm,
+      coa: coa,
+    }));
+  }
+
+  function handleBank(bank: any) {
+    setSelectedBank(bank);
+    setForm((prevForm) => ({
+      ...prevForm,
+      bank: bank,
+    }));
+  }
+
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -93,6 +118,10 @@ export default function CreatePaymentForm() {
     if (name === "type") {
       tabsRef.current?.setActiveTab(value === "ACCOUNT" ? 1 : 0);
       setCollectData([]);
+      setForm((prev) => ({
+        ...prev,
+        bpCode: null,
+      }));
     }
   }
   function handleDateChange(date: Date | null, id: string) {
@@ -114,57 +143,56 @@ export default function CreatePaymentForm() {
       const updatedForm = {
         ...prev,
         [name]: value,
-    };
+      };
 
-    if (updatedForm.bpCodeSelect && detailDraft.invType) {
-      getPurchaseInvoice(updatedForm.bpCodeInput).then((data) => {
-        setInvoiceData(data);
-      });
-    }
-    console.log(invoiceData)
-    return updatedForm;
-  });}
-  
+      if (updatedForm.bpCodeSelect && detailDraft.invType) {
+        getPurchaseInvoice(updatedForm.bpCodeInput).then((data) => {
+          setInvoiceData(data);
+        });
+      }
+      return updatedForm;
+    });
+  }
+
   async function handleInvoiceTypeChange(e) {
-  const { name, value } = e.target;
-  setDetailDraft((prev) => {
-    const DetailDraft = {
-      ...prev,
-      [name]: value,
-    };
+    const { name, value } = e.target;
+    setDetailDraft((prev) => {
+      const DetailDraft = {
+        ...prev,
+        [name]: value,
+      };
 
-if (form.bpCodeSelect && updatedForm.invType) {
-      getPurchaseInvoice(form.bpCodeSelect).then((data) => {
-        setInvoiceData(data);
-      });
-    }
-    console.log(invoiceData)
-    return DetailDraft;
-  });}
+      if (form.bpCodeSelect && updatedForm.invType) {
+        getPurchaseInvoice(form.bpCodeSelect).then((data) => {
+          setInvoiceData(data);
+        });
+      }
+      return DetailDraft;
+    });
+  }
 
-  async function getPurchaseInvoice(cardCode : string) {
-      try {
-        const domain = import.meta.env.VITE_BACKEND
-        const path = route.purchaseInvoice.byCardCode(cardCode);
-        const endPoint = `${domain}${path}`;
-        const response = await axios.get(endPoint);
-        console.log(response.data);
-        return response.data;
-      } catch (error) {
-        console.error("Gagal:", error.message);
-        alert("Gagal Mengambil Data");
+  async function getPurchaseInvoice(cardCode: string) {
+    try {
+      const domain = import.meta.env.VITE_BACKEND;
+      const path = route.purchaseInvoice.byCardCode(cardCode);
+      const endPoint = `${domain}${path}`;
+      const response = await axios.get(endPoint);
+      return response.data;
+    } catch (error) {
+      console.error("Gagal:", error.message);
+      alert("Gagal Mengambil Data");
     }
   }
   async function handleSubmit(e) {
     e.preventDefault();
     console.log(form.createDate);
-    
+
     const data = buildPaymentRequestPayload(form, collectData);
-    
+
     try {
-      const domain = import.meta.env.VITE_BACKEND
+      const domain = import.meta.env.VITE_BACKEND;
       const path = route.paymentRequest.create() || null;
-      const endPoint = `${domain}${path}`
+      const endPoint = `${domain}${path}`;
       const response = await axios.post(endPoint, data);
       console.log("Sukses:", response.data);
       alert("Payment Request berhasil dibuat!");
@@ -175,67 +203,139 @@ if (form.bpCodeSelect && updatedForm.invType) {
   }
 
   function handleAddDetail() {
-  setCollectData(prev => [...prev, detailDraft]);
-  setDetailDraft({
-    invType: "",
-    invoiceNo: "",
-    vendorRef: "",
-    invoiceAmount: "",
-    paymentAmount: "",
-    balanceInvoice: "",
-    cashDisc: "",
-    accNo: "",
-    remarkDetail: "",
-    proj: "",
-    wTaxAmount: "",
-    noFPK: "",
-    dept: "",
-    locPool: "",
-    d3: "",
-    d4: "",
-    d5: "",
-  });
+    setCollectData((prev) => [...prev, detailDraft]);
+    setDetailDraft({
+      invType: "",
+      invoiceNo: "",
+      vendorRef: "",
+      invoiceAmount: "",
+      paymentAmount: "",
+      balanceInvoice: "",
+      cashDisc: "",
+      accNo: "",
+      remarkDetail: "",
+      proj: "",
+      wTaxAmount: "",
+      noFPK: "",
+      dept: "",
+      locPool: "",
+      d3: "",
+      d4: "",
+      d5: "",
+    });
   }
 
   async function getBpCode(page: number, keyword = "", cardType = "") {
-    setBpLoading(true);
-      try {
-        const limit = 50;
-        const domain = import.meta.env.VITE_BACKEND;
-        if (keyword != "") {
-          page = 1
-        }
-        cardType = form.type
-        console.log(cardType);
-        const url = route.businessPartner.all(page, limit, keyword, cardType);
-        const endpoint = `${domain}${url}`;
-        const response = await axios.get(endpoint);      
-        
-        setBpList(response.data.data.value);
-        console.log(response.data.data.value);
-        
-        if(response.data.data.jumlah != 0){
-          setTotalPages(Math.ceil(response.data.data.jumlah / limit));
-        } else {
-          setTotalPages(1);
-        }
-      } catch (error) {
-        console.error("Gagal:", error.message);
-        alert("Gagal Mengambil Data");
+    setLoading(true);
+    try {
+      const limit = 50;
+      const domain = import.meta.env.VITE_BACKEND;
+      if (keyword != "") {
+        page = 1;
+      }
+      cardType = form.type;
+      const url = route.businessPartner.all(page, limit, keyword, cardType);
+      const endpoint = `${domain}${url}`;
+      const response = await axios.get(endpoint);
+
+      setBpList(response.data.data.value);
+
+      if (response.data.data.jumlah != 0) {
+        setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error("Gagal:", error.message);
+      alert("Gagal Mengambil Data");
     } finally {
-      setBpLoading(false);
+      setLoading(false);
+    }
   }
+
+  async function getCoa(page: number, keyword = "") {
+    setLoading(true);
+    try {
+      const limit = 50;
+      const domain = import.meta.env.VITE_BACKEND;
+      if (keyword != "") {
+        page = 1;
+      }
+      const url = route.chartOfAccount.all(page, limit, keyword);
+      const endpoint = `${domain}${url}`;
+      const response = await axios.get(endpoint);
+
+      setCoaList(response.data.data.value);
+      if (response.data.data.jumlah != 0) {
+        setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error("Gagal:", error.message);
+      alert("Gagal Mengambil Data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function getBank(page: number, keyword = "") {
+    setLoading(true);
+    try {
+      const limit = 50;
+      const domain = import.meta.env.VITE_BACKEND;
+      if (keyword != "") {
+        page = 1;
+      }
+      const url = route.bank.all(keyword);
+      const endpoint = `${domain}${url}`;
+      const response = await axios.get(endpoint);
+
+      console.log(url);
+      console.log(response.data);
+
+      setBankList(response.data.data.value);
+      if (response.data.data.jumlah != 0) {
+        setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error("Gagal:", error.message);
+      alert("Gagal Mengambil Data");
+    } finally {
+      setLoading(false);
+    }
   }
 
   //VARIABEL
   useEffect(() => {
-  if (openBpModal) {
-    const handler = setTimeout(() => {
-      getBpCode(currentPage, bpKeyword);
-    }, 400);
-    return () => clearTimeout(handler);
-  }
-}, [openBpModal, currentPage, bpKeyword]);
+    if (openBpModal) {
+      const handler = setTimeout(() => {
+        getBpCode(currentPage, bpKeyword);
+      }, 400);
+      return () => clearTimeout(handler);
+    }
+  }, [openBpModal, currentPage, bpKeyword]);
+
+  useEffect(() => {
+    if (openCoaModal) {
+      const handler = setTimeout(() => {
+        getCoa(currentPage, coaKeyword);
+      }, 400);
+      return () => clearTimeout(handler);
+    }
+  }, [openCoaModal, currentPage, coaKeyword]);
+
+  useEffect(() => {
+    if (openBankModal) {
+      const handler = setTimeout(() => {
+        getBank(currentPage, bankKeyword);
+      }, 400);
+      console.log(form.bank);
+      return () => clearTimeout(handler);
+    }
+  }, [openBankModal, currentPage, bankKeyword]);
 
   useEffect(() => {
     if (!openBpModal) {
@@ -245,77 +345,128 @@ if (form.bpCodeSelect && updatedForm.invType) {
   }, [openBpModal]);
 
   useEffect(() => {
-    if(selectedBp){
-      console.log(selectedBp);
+    if (!openCoaModal) {
+      setCurrentPage(1);
+      setCoaList([]);
     }
-  })
+  }, [openCoaModal]);
+
+  useEffect(() => {
+    if (!openBankModal) {
+      setCurrentPage(1);
+      setBankList([]);
+    }
+  }, [openBankModal]);
 
   const invoiceType = {
     VENDOR: [
       { value: "AP", label: "AP" },
       { value: "APDP", label: "APDP" },
-      { value: "APCN", label: "APCN" }
+      { value: "APCN", label: "APCN" },
     ],
     CUSTOMER: [
       { value: "AR", label: "AR" },
       { value: "ARDP", label: "ARDP" },
-      { value: "ARCN", label: "ARCN" }
+      { value: "ARCN", label: "ARCN" },
     ],
-    ACCOUNT: [
-      { value: "OTHER", label: "OTHER" }
-    ]
+    ACCOUNT: [{ value: "OTHER", label: "OTHER" }],
   };
 
-  const columns = [
+  const bpColumns = [
     { key: "CardCode", label: "BP Code" },
     { key: "CardName", label: "BP Name" },
     { key: "ContactPerson", label: "PIC" },
   ];
 
-    const dataType = [
+  const coaColumns = [
+    { key: "Code", label: "COA Code" },
+    { key: "Name", label: "Name" },
+    { key: "Balance", label: "Balance" },
+  ];
+
+  const bankColumns = [
+    { key: "BankCode", label: "Code" },
+    { key: "BankName", label: "Bank Name" },
+    { key: "CountryCode", label: "Country" },
+  ];
+
+  const dataType = [
     {
       value: "VENDOR",
-      label: "Vendor"
+      label: "Vendor",
     },
     {
       value: "CUSTOMER",
-      label: "Customer"
+      label: "Customer",
     },
     {
       value: "ACCOUNT",
-      label: "Account"
-    }
+      label: "Account",
+    },
   ];
   const paymentType = [
     {
       value: "CASH",
-      label: "Cash"
+      label: "Cash",
     },
     {
       value: "BANK TRANSFER",
-      label: "Bank Transfer"
+      label: "Bank Transfer",
     },
     {
       value: "CHECK",
-      label: "Check"
-    }
+      label: "Check",
+    },
   ];
   return (
     <form onSubmit={handleSubmit}>
-      <div id="formCreateContent" className="grid grid-col-1 gap-y-5 mt-4 mb-5">
+      <div id="formCreateContent" className="grid-col-1 mt-4 mb-5 grid gap-y-5">
         <div className="grid grid-cols-2">
           <div className="flex place-content-end">
             <div className="">
-              <div className="h-full grid grid-cols-4 gap-5 content-start">
-                <CustomInput disable id="status" type="text" label="Status" placeholder="Status" required={true} value={form.status} onChange={handleChange} />
-                <CustomInput id="outgoingNum" type="text" label="Outgoing No" placeholder="Outgoing No." required={true} value={form.outgoingNum} onChange={handleChange} />
+              <div className="grid h-full grid-cols-4 content-start gap-5">
+                <CustomInput
+                  disable
+                  id="status"
+                  type="text"
+                  label="Status"
+                  placeholder="Status"
+                  required={true}
+                  value={form.status}
+                  onChange={handleChange}
+                />
+                <CustomInput
+                  id="outgoingNum"
+                  type="text"
+                  label="Outgoing No"
+                  placeholder="Outgoing No."
+                  required={true}
+                  value={form.outgoingNum}
+                  onChange={handleChange}
+                />
               </div>
             </div>
           </div>
           <div className="flex pl-5">
-            <div className="h-full grid grid-cols-2 gap-5 content-start">
-              <CustomInput id="reqPaymentDate" type="date" label="Request Payment" placeholder="Request Payment Date" required={true} date={form.reqPaymentDate} onDateChange={handleDateChange} />
-              <CustomInput id="postDate" type="date" label="Posting Date" placeholder="Posting Date" required={true} date={form.postDate} onDateChange={handleDateChange} />
+            <div className="grid h-full grid-cols-2 content-start gap-5">
+              <CustomInput
+                id="reqPaymentDate"
+                type="date"
+                label="Request Payment"
+                placeholder="Request Payment Date"
+                required={true}
+                date={form.reqPaymentDate}
+                onDateChange={handleDateChange}
+              />
+              <CustomInput
+                id="postDate"
+                type="date"
+                label="Posting Date"
+                placeholder="Posting Date"
+                required={true}
+                date={form.postDate}
+                onDateChange={handleDateChange}
+              />
             </div>
           </div>
         </div>
@@ -324,64 +475,171 @@ if (form.bpCodeSelect && updatedForm.invType) {
           {/* Section Payment No. */}
           <Card>
             <div className="grid gap-2">
-              <CustomInput id="createDate" type="date" label="Create Date" placeholder="Create Date" required={true} date={form.createDate} onDateChange={handleDateChange} />
+              <CustomInput
+                id="createDate"
+                type="date"
+                label="Create Date"
+                placeholder="Create Date"
+                required={true}
+                date={form.createDate}
+                onDateChange={handleDateChange}
+              />
 
               {/* SECTION Type */}
-              <CustomInput id="type" type="select" label="Type" placeholder="Type" required={true} data={dataType} value={form.type} onChange={handleChange} />
+              <CustomInput
+                id="type"
+                type="select"
+                label="Type"
+                placeholder="Type"
+                required={true}
+                data={dataType}
+                value={form.type}
+                onChange={handleChange}
+              />
 
-              <CustomInput id="means" type="select" label="Payment Means" required={true} value={form.means} onChange={handleChange} data={paymentType}/>
+              <CustomInput
+                id="means"
+                type="select"
+                label="Payment Means"
+                required={true}
+                value={form.means}
+                onChange={handleChange}
+                data={paymentType}
+              />
 
-              {
-                  form.type ==  "ACCOUNT" 
-                  ? 
-                    ''
-                  :
-                   (
-                     <>
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="bpCode">Select BP Code</Label>
-                        <div id="bpCode" className="flex gap-x-2">
-                          <Button name={form.type} onClick={() => (setOpenBpModal(true))}>{form.bpCode == null ?  "SELECT BP CODE" : form.bpCode.CardCode}</Button>
-                          <TextInput
-                            className="flex-1"
-                            type="text"
-                            disabled={true}
-                            value={form.bpCode == null ?  "Please select BP CODE" : form.bpCode.CardName}
-                          />
-                          <ChooseFromListModal
-                                open={openBpModal}
-                                onClose={() => setOpenBpModal(false)}
-                                onSelect={(bp) => handleBpCode(bp)}
-                                data={bpList}
-                                columns={columns}
-                                title="Pilih Business Partner"
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={setCurrentPage}
-                                loading={bpLoading}
-                                bpKeyword={bpKeyword}
-                                onKeywordChange={setBpKeyword}
-                                />
-                            </div>
-                        </div>
-                      </>
-                   )
-                }
+              {form.type == "ACCOUNT" ? (
+                ""
+              ) : (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="bpCode">Select BP Code</Label>
+                    <div id="bpCode" className="flex gap-x-2">
+                      <Button onClick={() => setOpenBpModal(true)}>
+                        {form.bpCode == null
+                          ? "SELECT BP CODE"
+                          : form.bpCode.CardCode}
+                      </Button>
+                      <TextInput
+                        className="flex-1"
+                        type="text"
+                        disabled={true}
+                        value={
+                          form.bpCode == null
+                            ? "Please select BP CODE"
+                            : form.bpCode.CardName
+                        }
+                      />
+                      <ChooseFromListModal
+                        open={openBpModal}
+                        onClose={() => setOpenBpModal(false)}
+                        onSelect={(bp) => handleBpCode(bp)}
+                        data={bpList}
+                        columns={bpColumns}
+                        title="Pilih Business Partner"
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        loading={loading}
+                        bpKeyword={bpKeyword}
+                        onKeywordChange={setBpKeyword}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               {/* <CustomInput id="currencies" type="text" label="Doc Currency" placeholder="Doc Currency" required={true} value={form.currencies} onChange={handleChange} /> */}
             </div>
           </Card>
           <Card>
             <div className="grid gap-y-4">
-              <div className="grid grid-col-2 gap-y-4">
-                
-                <CustomInput id="coa" type="twoInput" label="COA" placeholder="COA" required={true} value={form.coaSelect} value2={form.coaInput} onChange={handleChange} />
+              <div className="grid-col-2 grid gap-y-4">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="coa">Select Chart Of Account</Label>
+                  <div id="coa" className="flex gap-x-2">
+                    <Button onClick={() => setOpenCoaModal(true)}>
+                      {form.coa == null ? "SELECT COA" : form.coa.Code}
+                    </Button>
+                    <TextInput
+                      className="flex-1"
+                      type="text"
+                      disabled={true}
+                      value={
+                        form.coa == null ? "Please select COA" : form.coa.Name
+                      }
+                    />
+                    <ChooseFromListModal
+                      open={openCoaModal}
+                      onClose={() => setOpenCoaModal(false)}
+                      onSelect={(coa) => handleCoa(coa)}
+                      data={coaList}
+                      columns={coaColumns}
+                      title="Please select COA"
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      loading={loading}
+                      bpKeyword={coaKeyword}
+                      onKeywordChange={setCoaKeyword}
+                    />
+                  </div>
+                </div>
+
                 {/* WHILE TYPE = CUSTOMER, IT SUPPOSE TO BE HIDE */}
 
-                <CustomInput id="bankAcc" type="twoInput" label="Bank Account" placeholder="Bank Account" required={true} value={form.bankAccSelect} value2={form.bankAccInput} onChange={handleChange} />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="bankAcc">Select Bank Account</Label>
+                  <div id="bankAcc" className="flex gap-x-2">
+                    <Button onClick={() => setOpenBankModal(true)}>
+                      {form.bank == null
+                        ? "SELECT Bank Account"
+                        : form.bank.BankCode}
+                    </Button>
+                    <TextInput
+                      className="flex-1"
+                      type="text"
+                      disabled={true}
+                      value={
+                        form.bank == null
+                          ? "Please select Bank Account"
+                          : form.bank.BankName
+                      }
+                    />
+                    <ChooseFromListModal
+                      open={openBankModal}
+                      onClose={() => setOpenBankModal(false)}
+                      onSelect={(bank) => handleBank(bank)}
+                      data={bankList}
+                      columns={bankColumns}
+                      title="Please Bank Accounts"
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      loading={loading}
+                      bpKeyword={coaKeyword}
+                      onKeywordChange={setCoaKeyword}
+                    />
+                  </div>
+                </div>
               </div>
               <div className="grid gap-y-4">
-                <CustomInput id="checkNo" type="text" label="Check No." placeholder="Check No." required={true} value={form.checkNo} onChange={handleChange} />
-                <CustomInput id="receiveNo" type="text" label="Receive No." placeholder="Receiving No." required={true} value={form.receiveNo} onChange={handleChange} />
+                <CustomInput
+                  id="checkNo"
+                  type="text"
+                  label="Check No."
+                  placeholder="Check No."
+                  required={true}
+                  value={form.checkNo}
+                  onChange={handleChange}
+                />
+                <CustomInput
+                  id="receiveNo"
+                  type="text"
+                  label="Receive No."
+                  placeholder="Receiving No."
+                  required={true}
+                  value={form.receiveNo}
+                  onChange={handleChange}
+                />
               </div>
             </div>
           </Card>
@@ -389,199 +647,298 @@ if (form.bpCodeSelect && updatedForm.invType) {
 
         {/* Section 2 | COA */}
 
-
         {/* Tabs Section */}
         <Card>
-          <Tabs aria-label="Full width tabs" variant="default" ref={tabsRef} onActiveTabChange={(tab) => setActiveTab(tab)}>
+          <Tabs
+            aria-label="Full width tabs"
+            variant="default"
+            ref={tabsRef}
+            onActiveTabChange={(tab) => setActiveTab(tab)}
+          >
             {/* WHILE TYPE == ACCOUNT, IT SUPPOSED TO BE DISABLED */}
-            <TabItem active title="Invoice" disabled={form.type === "ACCOUNT"}
-              >
-              {
-                form.type == "ACCOUNT" ? null :
-                (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-y-1 gap-x-5 mb-4">
-                    {
-                      form.type == "CUSTOMER" ? null : 
-                      <>
-                        <CustomInput id="invType" type="select" label="Invoice Type" placeholder="Invoice Type" value={detailDraft.invType} onChange={handleInvoiceTypeChange} data={invoiceType[form.type]}/>
-                        
-                      </>  
-                    }
-                    
-                    <CustomInput id="vendorRef" type="text" label="Vendor Ref No." placeholder="Vendor Ref No." value={detailDraft.vendorRef} onChange={handleChangeCollection} />
-                    {/* <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" value={detailDraft.invoiceAmount} onChange={handleChangeCollection} /> */}
-                    <CustomInput id="wTaxAmount" type="text" label="W Tax Amount" placeholder="W Tax Amount" value={detailDraft.wTaxAmount} onChange={handleChangeCollection} />
-                    <CustomInput id="paymentAmount" type="text" label="Payment Amount" placeholder="Payment Amount" value={detailDraft.paymentAmount} onChange={handleChangeCollection} />
-                    
-                    {
-                      form.type == "CUSTOMER" ? null : 
-                      <>
-                        <CustomInput id="balanceInvoice" type="text" label="Balance Invoice" placeholder="Blance Invoice" value={detailDraft.balanceInvoice} onChange={handleChangeCollection} />
-                        <CustomInput id="cashDisc" type="text" label="Cash Discount" placeholder="Cash Discount" value={detailDraft.cashDisc} onChange={handleChangeCollection} />
-                      </>  
-                    }
-                  </div>
-                )
-              }
+            <TabItem active title="Invoice" disabled={form.type === "ACCOUNT"}>
+              {form.type == "ACCOUNT" ? null : (
+                <div className="mb-4 grid grid-cols-1 gap-x-5 gap-y-1 md:grid-cols-4">
+                  {form.type == "CUSTOMER" ? null : (
+                    <>
+                      <CustomInput
+                        id="invType"
+                        type="select"
+                        label="Invoice Type"
+                        placeholder="Invoice Type"
+                        value={detailDraft.invType}
+                        onChange={handleInvoiceTypeChange}
+                        data={invoiceType[form.type]}
+                      />
+                    </>
+                  )}
+
+                  <CustomInput
+                    id="vendorRef"
+                    type="text"
+                    label="Vendor Ref No."
+                    placeholder="Vendor Ref No."
+                    value={detailDraft.vendorRef}
+                    onChange={handleChangeCollection}
+                  />
+                  {/* <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" value={detailDraft.invoiceAmount} onChange={handleChangeCollection} /> */}
+                  <CustomInput
+                    id="wTaxAmount"
+                    type="text"
+                    label="W Tax Amount"
+                    placeholder="W Tax Amount"
+                    value={detailDraft.wTaxAmount}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="paymentAmount"
+                    type="text"
+                    label="Payment Amount"
+                    placeholder="Payment Amount"
+                    value={detailDraft.paymentAmount}
+                    onChange={handleChangeCollection}
+                  />
+
+                  {form.type == "CUSTOMER" ? null : (
+                    <>
+                      <CustomInput
+                        id="balanceInvoice"
+                        type="text"
+                        label="Balance Invoice"
+                        placeholder="Blance Invoice"
+                        value={detailDraft.balanceInvoice}
+                        onChange={handleChangeCollection}
+                      />
+                      <CustomInput
+                        id="cashDisc"
+                        type="text"
+                        label="Cash Discount"
+                        placeholder="Cash Discount"
+                        value={detailDraft.cashDisc}
+                        onChange={handleChangeCollection}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
             </TabItem>
 
-            <TabItem title="Account" disabled={form.type == "VENDOR" || form.type == "CUSTOMER" ? true : false}>
-              {
-                form.type == "VENDOR" || form.type == "CUSTOMER" ? "" :
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <CustomInput id="accNo" type="text" label="Account No." placeholder="Invoice Type" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.accNo} onChange={handleChangeCollection} />
-                <CustomInput id="remarkDetail" type="text" label="Remarks Detail" placeholder="Remark Detail" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.remarkDetail} onChange={handleChangeCollection} />
-                <CustomInput id="proj" type="text" label="Project" placeholder="Project" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.proj} onChange={handleChangeCollection} />
-                
-                <CustomInput id="noFPK" type="text" label="No. FPK" placeholder="No. FPK" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.noFPK} onChange={handleChangeCollection} />
-                <CustomInput id="dept" type="text" label="Department" placeholder="Department" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.dept} onChange={handleChangeCollection} />
-                <CustomInput id="locPool" type="text" label="Lokasi Pool" placeholder="Lokasi Pool" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.locPool} onChange={handleChangeCollection} />
-                <CustomInput id="d3" type="text" label="Dimension 3" placeholder="Dimension 3" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.d3} onChange={handleChangeCollection} />
-                <CustomInput id="d4" type="text" label="Dimension 4" placeholder="Dimension 4" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.d4} onChange={handleChangeCollection} />
-                <CustomInput id="d5" type="text" label="Dimension 5" placeholder="Dimension 5" 
-                // REQUIRED LOGIC HERE
-                value={detailDraft.d5} onChange={handleChangeCollection} />
-              </div>
+            <TabItem
+              title="Account"
+              disabled={
+                form.type == "VENDOR" || form.type == "CUSTOMER" ? true : false
               }
+            >
+              {form.type == "VENDOR" || form.type == "CUSTOMER" ? (
+                ""
+              ) : (
+                <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <CustomInput
+                    id="accNo"
+                    type="text"
+                    label="Account No."
+                    placeholder="Invoice Type"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.accNo}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="remarkDetail"
+                    type="text"
+                    label="Remarks Detail"
+                    placeholder="Remark Detail"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.remarkDetail}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="proj"
+                    type="text"
+                    label="Project"
+                    placeholder="Project"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.proj}
+                    onChange={handleChangeCollection}
+                  />
+
+                  <CustomInput
+                    id="noFPK"
+                    type="text"
+                    label="No. FPK"
+                    placeholder="No. FPK"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.noFPK}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="dept"
+                    type="text"
+                    label="Department"
+                    placeholder="Department"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.dept}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="locPool"
+                    type="text"
+                    label="Lokasi Pool"
+                    placeholder="Lokasi Pool"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.locPool}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="d3"
+                    type="text"
+                    label="Dimension 3"
+                    placeholder="Dimension 3"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.d3}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="d4"
+                    type="text"
+                    label="Dimension 4"
+                    placeholder="Dimension 4"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.d4}
+                    onChange={handleChangeCollection}
+                  />
+                  <CustomInput
+                    id="d5"
+                    type="text"
+                    label="Dimension 5"
+                    placeholder="Dimension 5"
+                    // REQUIRED LOGIC HERE
+                    value={detailDraft.d5}
+                    onChange={handleChangeCollection}
+                  />
+                </div>
+              )}
             </TabItem>
           </Tabs>
-          <div className="w-full flex justify-end">
+          <div className="flex w-full justify-end">
             <Button onClick={handleAddDetail}>Add</Button>
           </div>
         </Card>
 
         {/* Table Section */}
         <div className="overflow-x-auto">
-            <Table striped className="mr-10">
-              <TableHead>
-                {
-                  form.type == "VENDOR" ? 
-                  <>
-                    <TableHeadCell>Invoice Type</TableHeadCell>
-                    <TableHeadCell>invoice No</TableHeadCell>
-                    <TableHeadCell>Vendor References</TableHeadCell>
+          <Table striped className="mr-10">
+            <TableHead>
+              {form.type == "VENDOR" ? (
+                <>
+                  <TableHeadCell>Invoice Type</TableHeadCell>
+                  <TableHeadCell>invoice No</TableHeadCell>
+                  <TableHeadCell>Vendor References</TableHeadCell>
 
-                    {/* TIDAK ADA FIELD */}
-                    <TableHeadCell>Invoice Currencies</TableHeadCell>
-                    
-                    <TableHeadCell>Invoice Amount</TableHeadCell>
-                    <TableHeadCell>WTax Amount</TableHeadCell>
+                  {/* TIDAK ADA FIELD */}
+                  <TableHeadCell>Invoice Currencies</TableHeadCell>
 
-                    <TableHeadCell>Cash Discount</TableHeadCell>
-                    <TableHeadCell>Payment Amount</TableHeadCell>
-                  </>
-                  :
-                  null
-                }
+                  <TableHeadCell>Invoice Amount</TableHeadCell>
+                  <TableHeadCell>WTax Amount</TableHeadCell>
 
-                {
-                  form.type == "CUSTOMER" ? 
-                  <>
-                    <TableHeadCell>WTax Amount</TableHeadCell>
-                  </>
-                  :
-                  ""
-                }
+                  <TableHeadCell>Cash Discount</TableHeadCell>
+                  <TableHeadCell>Payment Amount</TableHeadCell>
+                </>
+              ) : null}
 
-                {
-                  form.type == "ACCOUNT" ?  
-                  <>
-                    <TableHeadCell>Account No.</TableHeadCell>
-                    <TableHeadCell>Account Name</TableHeadCell>
-                    <TableHeadCell>Department</TableHeadCell>
-                    <TableHeadCell>No. Pool</TableHeadCell>
-                    <TableHeadCell>Dimension 3</TableHeadCell>
-                    <TableHeadCell>Dimension 4</TableHeadCell>
-                    <TableHeadCell>FPK</TableHeadCell>
-                    <TableHeadCell>Remark</TableHeadCell>
-                    <TableHeadCell>Payment Amount</TableHeadCell>
-                  </>
-                  :
-                  null
-                }
+              {form.type == "CUSTOMER" ? (
+                <>
+                  <TableHeadCell>WTax Amount</TableHeadCell>
+                </>
+              ) : (
+                ""
+              )}
 
-                <TableHeadCell>Action</TableHeadCell>
+              {form.type == "ACCOUNT" ? (
+                <>
+                  <TableHeadCell>Account No.</TableHeadCell>
+                  <TableHeadCell>Account Name</TableHeadCell>
+                  <TableHeadCell>Department</TableHeadCell>
+                  <TableHeadCell>No. Pool</TableHeadCell>
+                  <TableHeadCell>Dimension 3</TableHeadCell>
+                  <TableHeadCell>Dimension 4</TableHeadCell>
+                  <TableHeadCell>FPK</TableHeadCell>
+                  <TableHeadCell>Remark</TableHeadCell>
+                  <TableHeadCell>Payment Amount</TableHeadCell>
+                </>
+              ) : null}
 
-              </TableHead>
-              <TableBody>
-                {/* Rows will go here dynamically */}
-                {
-                  collectData.map((item, idx) => (
-                    <TableRow>
-                      {
-                        form.type == "VENDOR" ?
-                        <>
-                          <TableCell>{collectData[idx].invType}</TableCell>
-                          <TableCell>{collectData[idx].invoiceNo}</TableCell>
-                          <TableCell>{collectData[idx].vendorRef}</TableCell>
-                          <TableCell>INVOICE CURRENCIES</TableCell>
-                          <TableCell>{collectData[idx].invoiceAmount}</TableCell>
-                          <TableCell>{collectData[idx].wTaxAmount}</TableCell>
-                          <TableCell>{collectData[idx].cashDisc}</TableCell>
-                          <TableCell>{collectData[idx].paymentAmount}</TableCell>
-                        </>
-                        :
-                        null
-                      }
+              <TableHeadCell>Action</TableHeadCell>
+            </TableHead>
+            <TableBody>
+              {/* Rows will go here dynamically */}
+              {collectData.map((item, idx) => (
+                <TableRow>
+                  {form.type == "VENDOR" ? (
+                    <>
+                      <TableCell>{collectData[idx].invType}</TableCell>
+                      <TableCell>{collectData[idx].invoiceNo}</TableCell>
+                      <TableCell>{collectData[idx].vendorRef}</TableCell>
+                      <TableCell>INVOICE CURRENCIES</TableCell>
+                      <TableCell>{collectData[idx].invoiceAmount}</TableCell>
+                      <TableCell>{collectData[idx].wTaxAmount}</TableCell>
+                      <TableCell>{collectData[idx].cashDisc}</TableCell>
+                      <TableCell>{collectData[idx].paymentAmount}</TableCell>
+                    </>
+                  ) : null}
 
-                      {/* TIDAK ADA FIELD */}
+                  {/* TIDAK ADA FIELD */}
 
-                      {
-                        form.type == "CUSTOMER" ? 
-                        <>
-                          <TableCell>{collectData[idx].wTaxAmount}</TableCell>
-                        </>
-                        :
-                        null
-                      }
+                  {form.type == "CUSTOMER" ? (
+                    <>
+                      <TableCell>{collectData[idx].wTaxAmount}</TableCell>
+                    </>
+                  ) : null}
 
-                      {
-                        form.type == "ACCOUNT" ?
-                        <>
-                          <TableCell>{collectData[idx].accNo}</TableCell>
-                          <TableCell>Account Number</TableCell>
-                          <TableCell>{collectData[idx].dept}</TableCell>
-                          <TableCell>{collectData[idx].locPool}</TableCell>
-                          <TableCell>{collectData[idx].d3}</TableCell>
-                          <TableCell>{collectData[idx].d4}</TableCell>
-                          <TableCell>{collectData[idx].noFPK}</TableCell>
-                          <TableCell>{collectData[idx].remarkDetail}</TableCell>
-                          <TableCell>{collectData[idx].paymentAmount}</TableCell>
-                        </>
-                        :
-                        null
-                      }    
+                  {form.type == "ACCOUNT" ? (
+                    <>
+                      <TableCell>{collectData[idx].accNo}</TableCell>
+                      <TableCell>Account Number</TableCell>
+                      <TableCell>{collectData[idx].dept}</TableCell>
+                      <TableCell>{collectData[idx].locPool}</TableCell>
+                      <TableCell>{collectData[idx].d3}</TableCell>
+                      <TableCell>{collectData[idx].d4}</TableCell>
+                      <TableCell>{collectData[idx].noFPK}</TableCell>
+                      <TableCell>{collectData[idx].remarkDetail}</TableCell>
+                      <TableCell>{collectData[idx].paymentAmount}</TableCell>
+                    </>
+                  ) : null}
 
-                      <TableCell><CustomButton name="DELETE"/></TableCell> 
-                    </TableRow>
-                  ))
-                }
-              </TableBody>
-            </Table>
+                  <TableCell>
+                    <CustomButton name="DELETE" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
         {/* Remarks Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CustomInput id="remarks" label="Remarks" type="textArea" placeholder="Enter remarks" required={true} value={form.remarks} onChange={handleChange} />
-          <CustomInput id="approval" label="Approval" type="textArea" placeholder="Enter notes approval" required={true} value={form.approval} onChange={handleChange} />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <CustomInput
+            id="remarks"
+            label="Remarks"
+            type="textArea"
+            placeholder="Enter remarks"
+            required={true}
+            value={form.remarks}
+            onChange={handleChange}
+          />
+          <CustomInput
+            id="approval"
+            label="Approval"
+            type="textArea"
+            placeholder="Enter notes approval"
+            required={true}
+            value={form.approval}
+            onChange={handleChange}
+          />
         </div>
-        <div className="flex gap-x-5 place-content-end">
-          <CustomButton name="Execute" type="submit"/>
+        <div className="flex place-content-end gap-x-5">
+          <CustomButton name="Execute" type="submit" />
           <CustomButton name="Save" />
           <CustomButton name="Cancel Doc" />
         </div>

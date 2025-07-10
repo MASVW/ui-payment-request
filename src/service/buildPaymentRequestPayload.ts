@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 type FormItem = {
-  no: any;
+  houseBank: string;
   createDate: Date;
   type: string;
   means: string;
@@ -9,17 +9,14 @@ type FormItem = {
   reqPaymentDate: Date;
   postDate: Date;
   outgoingNum: string;
-  coaSelect: string;
-  coaInput: string;
-  bpCode?: BpCollectionItem;
-  bpCodeSelect: string;
-  bpCodeInput: string;
-  bankAccSelect: string;
-  bankAccInput: string;
+  coa: CoaCollectionItem;
+  bpCode: BpCollectionItem;
+  bank: BankCollectionItem;
   checkNo: string;
   receiveNo: string;
   remarks: string;
   approval: string;
+  bankFee: number;
 };
 
 type CollectionItem = {
@@ -67,6 +64,28 @@ type BpCollectionItem = {
   FederalTaxID: string;
 };
 
+type CoaCollectionItem = {
+  Code: string;
+  Name: string;
+  Balance: string;
+  AccountLevel: string;
+  FatherAccountKey: string;
+};
+
+type BankCollectionItem = {
+  BankCode: string;
+  BankName: string;
+  AccountforOutgoingChecks: string;
+  BranchforOutgoingChecks: string;
+  NextCheckNumber: string;
+  SwiftNo: string;
+  IBAN: string;
+  CountryCode: string;
+  PostOffice: string;
+  AbsoluteEntry: string;
+  DefaultBankAccountKey: number;
+};
+
 function toLocalYMD(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0"); // bulan 0-indexed!
@@ -80,8 +99,16 @@ export function buildPaymentRequestPayload(
   form: FormItem,
   collection: CollectionData,
 ) {
-  const bpCode = form.bpCode?.CardCode;
-  const bpName = form.bpCode?.CardName;
+  const totalPaymentAmount = collection.reduce(
+    (sum, item) => sum + Number(item.paymentAmount || 0),
+    0,
+  );
+  const totalDiscount = collection.reduce(
+    (sum, item) => sum + Number(item.cashDisc || 0),
+    0,
+  );
+  const totalAfterDiscount = totalPaymentAmount - totalDiscount;
+  const grandTotal = totalAfterDiscount + Number(form.bankFee || 0);
   return {
     DocNum: null,
     Period: null,
@@ -102,31 +129,25 @@ export function buildPaymentRequestPayload(
     UpdateDate: null,
     UpdateTime: null,
     DataSource: "S",
-    U_SERRIESNAME: "BK102", //NO PLAT BK
+    U_SERRIESNAME: "BK0125", //NO Serries Keluaran BK BLABLA
     U_TYPE: form.type,
     U_PAYMEANS: form.means,
-    U_COA: form.coaSelect,
-    U_BANKACCCOMP: form.bankAccSelect,
-    U_BANKACC: form.bankAccInput || null,
-    U_BPCODE: bpCode,
-    U_COANAME: form.coaInput,
-    U_BANKNAME: form.bankAccInput,
-    U_BPNAME: bpName,
+    U_COA: form.coa.Code,
+    U_BANKACCCOMP: form.bank.BankName,
+    U_BANKACC: null, // DI DAPAT DARI CHECK PAYMENT MEANS houseBank !!, akun bank miliki perusahaan dari sisi backend saja
+    U_BPCODE: form.bpCode.CardCode,
+    U_COANAME: form.coa.Name,
+    U_BANKNAME: form.bank.BankName,
+    U_BPNAME: form.bpCode.CardName,
     U_REVACCNO: null,
     U_REVACCBANKNM: null,
     U_REVACCNM: null,
-    U_STATUS: "NEW", //Wajib ada isi (form.u_status)
-    U_TOTALPAY: collection.reduce(
-      (a, b) => a + (parseFloat(b.paymentAmount) || 0),
-      0,
-    ), //CHECK
-    U_GRANDTOTAL: collection.reduce(
-      (a, b) => a + (parseFloat(b.paymentAmount) || 0),
-      0,
-    ), //CHECK
+    U_STATUS: "NEW",
+    U_TOTALPAY: grandTotal,
+    U_GRANDTOTAL: grandTotal,
     U_NOTES: form.remarks,
     U_NOTESAPP: null,
-    U_OUTPAYNO: form.outgoingNum,
+    U_OUTPAYNO: null,
     U_CREATEDT: toLocalYMD(form.createDate),
     U_REQPAYDT: toLocalYMD(form.reqPaymentDate),
     U_POSTDT: toLocalYMD(form.postDate),
@@ -134,9 +155,9 @@ export function buildPaymentRequestPayload(
     U_OUTPAYENTRY: null,
     U_PAYCURR: form.currencies,
     U_DOCRATE: 0,
-    U_BANKCHARGE: 0,
+    U_BANKCHARGE: form.bankFee,
     U_TOTALLEVELAPP: 0,
-    U_STSAPP: null,
+    U_STSAPP: null, //Untuk otorisasi approval
     U_VDADD: "Y",
     U_ISPAY: null,
     U_COAPAY: null,
@@ -154,7 +175,7 @@ export function buildPaymentRequestPayload(
       U_ACCOUNTNM: item.accName || null,
       U_VENDORREFNO: item.vendorRef || null,
       U_INVDUEDATE: item.invoiceDue || null,
-      U_INVOICEENTRY: item.invoiceEntry || 70733, //ADD LISTING ITEM
+      U_INVOICEENTRY: item.invoiceEntry || 70733,
       U_INVOICETYPE: item.invType || null,
       U_INVOICECURR: item.invoiceCurr || "IDR",
       U_PLANT: item.plant || null,

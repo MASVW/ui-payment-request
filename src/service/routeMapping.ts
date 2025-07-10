@@ -16,8 +16,12 @@ export interface RouteObject {
     all: () => string;
   };
   purchaseInvoice: {
-    all: (pages?: number, limit?: number) => string;
-    byCardCode: (cardCode: string | number) => string;
+    all: (
+      pages?: number,
+      limit?: number,
+      typeInv?: string,
+      cardCode?: string,
+    ) => string;
   };
   root: {
     hello: () => string;
@@ -26,7 +30,7 @@ export interface RouteObject {
 
 const route: RouteObject = {
   businessPartner: {
-    all: (pages = 1, limit = 20, keyword = "", cardtype = "VENDOR") =>
+    all: (pages = 1, limit = 20, keyword = "", cardtype: string) =>
       `/api/v1/business-partners-formatted?pages=${pages}&limit=${limit}&cardtype=${cardtype}${keyword ? `&keyword=${keyword}` : ""}`,
     byId: (id) => `/api/v1/business-partners/${id}`,
     byIdFormatted: (id) => `/api/v1/business-partners-formatted/${id}`,
@@ -50,9 +54,8 @@ const route: RouteObject = {
       `/api/v1/bank${keyword ? `&keyword=${keyword}` : ""}`,
   },
   purchaseInvoice: {
-    all: (pages = 1, limit = 20) =>
-      `/api/v1/purchase-invoice?pages=${pages}&limit=${limit}`,
-    byCardCode: (cardCode) => `/api/v1/purchase-invoice/${cardCode}`,
+    all: (pages = 1, limit = 20, typeInv = "AP", cardCode) =>
+      `/api/v1/purchase-invoice/${typeInv}/${cardCode}?pages=${pages}&limit=${limit}`,
   },
   root: {
     hello: () => `/`,

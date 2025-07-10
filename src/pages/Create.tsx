@@ -22,10 +22,8 @@ import axios from "axios";
 import route from "../service/routeMapping";
 
 export default function CreatePaymentForm() {
-  const tabsRef = useRef<TabsRef>(null);
-  const [activeTab, setActiveTab] = useState(0);
-  const [form, setForm] = useState({
-    no: "",
+  const initForm = {
+    houseBank: "",
     createDate: new Date(),
     type: "VENDOR",
     means: "CASH",
@@ -41,49 +39,123 @@ export default function CreatePaymentForm() {
     receiveNo: "",
     remarks: "",
     approval: "",
-  });
-  const [openBpModal, setOpenBpModal] = useState(false);
-  const [openCoaModal, setOpenCoaModal] = useState(false);
-  const [openBankModal, setOpenBankModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+    bankFee: 0,
+  };
 
-  const [detailDraft, setDetailDraft] = useState({
-    invType: "",
+  const initDraft = {
+    invoiceNotes: "",
+    invType: "AP",
     invoiceNo: "",
     vendorRef: "",
-    invoiceAmount: "",
-    paymentAmount: "",
+    currencies: "IDR",
+    invoiceAmount: 0.0,
+    paymentAmount: 0,
     balanceInvoice: "",
-    cashDisc: "",
+    cashDisc: 0.0,
     accNo: "",
     remarkDetail: "",
     proj: "",
-    wTaxAmount: "",
+    wTaxAmount: 0.0,
     noFPK: "",
     dept: "",
     locPool: "",
     d3: "",
     d4: "",
     d5: "",
-  });
+  };
 
-  const [collectData, setCollectData] = useState([]);
-  const [invoiceData, setInvoiceData] = useState([]);
+  const initCoa = {
+    Code: "",
+    Name: "",
+    Balance: "",
+    AccountLevel: "",
+    FatherAccountKey: "",
+  };
 
-  const [bpList, setBpList] = useState<any[]>([]);
-  const [coaList, setCoaList] = useState<any[]>([]);
-  const [bankList, setBankList] = useState<any[]>([]);
+  const initBank = {
+    BankCode: "",
+    BankName: "",
+    AccountforOutgoingChecks: "",
+    BranchforOutgoingChecks: "",
+    NextCheckNumber: "",
+    SwiftNo: "",
+    IBAN: "",
+    CountryCode: "",
+    PostOffice: "",
+    AbsoluteEntry: "",
+    DefaultBankAccountKey: 0,
+  };
 
-  const [selectedBp, setSelectedBp] = useState([]);
-  const [selectedCoa, setSelectedCoa] = useState([]);
-  const [selectedBank, setSelectedBank] = useState([]);
+  const initBp = {
+    CardCode: "",
+    CardName: "",
+    CardType: "",
+    GroupCode: "",
+    Address: "",
+    ZipCode: "",
+    MailAddress: "",
+    MailZipCode: "",
+    Phone1: "",
+    Phone2: "",
+    Fax: "",
+    ContactPerson: "",
+    Notes: "",
+    PayTermsGrpCode: "",
+    CreditLimit: "",
+    MaxCommitment: "",
+    DiscountPercent: "",
+    VatLiable: "",
+    FederalTaxID: "",
+  };
+
+  const initSelectInv = {
+    DocEntry: "",
+    DocNum: "",
+    DocDate: "",
+    DocDueDate: "",
+    CardCode: "",
+    CardName: "",
+    NumAtCard: "",
+    DocTotal: 0,
+    DocCurrency: "",
+    PaymentGroupCode: "",
+    SalesPersonCode: "",
+    Project: "",
+    DocumentStatus: "",
+    Cancelled: "",
+    U_VRM2: "",
+    U_VRM1: "",
+    WTAmount: 0,
+  };
+
+  const tabsRef = useRef<TabsRef>(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [openBpModal, setOpenBpModal] = useState(false);
+  const [openCoaModal, setOpenCoaModal] = useState(false);
+  const [openBankModal, setOpenBankModal] = useState(false);
+  const [openInvModall, setOpenInvModall] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const [detailDraft, setDetailDraft] = useState(initDraft);
+  const [form, setForm] = useState(initForm);
+  const [selectedBp, setSelectedBp] = useState(initBp);
+  const [selectedInv, setSelectedInv] = useState(initSelectInv);
+  const [selectedCoa, setSelectedCoa] = useState(initCoa);
+  const [selectedBank, setSelectedBank] = useState(initBank);
+
+  const [collectData, setCollectData] = useState([]);
+  const [bpList, setBpList] = useState<any[]>([]);
+  const [coaList, setCoaList] = useState<any[]>([]);
+  const [bankList, setBankList] = useState<any[]>([]);
+  const [invList, setInvList] = useState<any[]>([]);
+
   const [bpKeyword, setBpKeyword] = useState("");
   const [coaKeyword, setCoaKeyword] = useState("");
   const [bankKeyword, setBankKeyword] = useState("");
+  const [invKeyword, setInvKeyword] = useState("");
 
   function handleBpCode(bp: any) {
     setSelectedBp(bp);
@@ -109,6 +181,19 @@ export default function CreatePaymentForm() {
     }));
   }
 
+  function hanldeInv(inv: any) {
+    setSelectedInv(inv);
+    setDetailDraft((prevForm) => ({
+      ...prevForm,
+      invoiceNotes: inv.NumAtCard,
+      invoiceNo: inv.DocNum,
+      wTaxAmount: inv.WTAmount,
+      invoiceAmount: inv.DocTotal,
+      balanceInvoice: inv.DocTotal,
+      paymentAmount: inv.DocTotal,
+    }));
+  }
+
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -119,11 +204,13 @@ export default function CreatePaymentForm() {
       tabsRef.current?.setActiveTab(value === "ACCOUNT" ? 1 : 0);
       setCollectData([]);
       setForm((prev) => ({
-        ...prev,
-        bpCode: null,
+        ...initForm,
+        type: prev.type,
       }));
+      setDetailDraft(initDraft);
     }
   }
+
   function handleDateChange(date: Date | null, id: string) {
     setForm((prev) => ({
       ...prev,
@@ -137,22 +224,6 @@ export default function CreatePaymentForm() {
       [name]: value,
     }));
   }
-  async function handleTypeChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => {
-      const updatedForm = {
-        ...prev,
-        [name]: value,
-      };
-
-      if (updatedForm.bpCodeSelect && detailDraft.invType) {
-        getPurchaseInvoice(updatedForm.bpCodeInput).then((data) => {
-          setInvoiceData(data);
-        });
-      }
-      return updatedForm;
-    });
-  }
 
   async function handleInvoiceTypeChange(e) {
     const { name, value } = e.target;
@@ -161,7 +232,6 @@ export default function CreatePaymentForm() {
         ...prev,
         [name]: value,
       };
-
       if (form.bpCodeSelect && updatedForm.invType) {
         getPurchaseInvoice(form.bpCodeSelect).then((data) => {
           setInvoiceData(data);
@@ -169,6 +239,24 @@ export default function CreatePaymentForm() {
       }
       return DetailDraft;
     });
+    if (name === "invType") {
+      setDetailDraft((prev) => ({
+        ...initDraft,
+        type: prev.invType,
+      }));
+    }
+  }
+
+  function handleDiscChange(e) {
+    const { name, value } = e.target;
+    const paymentAmount = Number(selectedInv.DocTotal) || 0;
+    const discValue = Number(value) || 0;
+    const processPayment = paymentAmount - discValue;
+    setDetailDraft((prev) => ({
+      ...prev,
+      [name]: value,
+      paymentAmount: processPayment,
+    }));
   }
 
   async function getPurchaseInvoice(cardCode: string) {
@@ -185,7 +273,9 @@ export default function CreatePaymentForm() {
   }
   async function handleSubmit(e) {
     e.preventDefault();
-    console.log(form.createDate);
+
+    console.log(`Form Data : ${form}`);
+    console.log(`Collection Data : ${collectData}`);
 
     const data = buildPaymentRequestPayload(form, collectData);
 
@@ -204,28 +294,10 @@ export default function CreatePaymentForm() {
 
   function handleAddDetail() {
     setCollectData((prev) => [...prev, detailDraft]);
-    setDetailDraft({
-      invType: "",
-      invoiceNo: "",
-      vendorRef: "",
-      invoiceAmount: "",
-      paymentAmount: "",
-      balanceInvoice: "",
-      cashDisc: "",
-      accNo: "",
-      remarkDetail: "",
-      proj: "",
-      wTaxAmount: "",
-      noFPK: "",
-      dept: "",
-      locPool: "",
-      d3: "",
-      d4: "",
-      d5: "",
-    });
+    setDetailDraft(initDraft);
   }
 
-  async function getBpCode(page: number, keyword = "", cardType = "") {
+  async function getBpCode(page: number, keyword: string, cardType: string) {
     setLoading(true);
     try {
       const limit = 50;
@@ -308,6 +380,40 @@ export default function CreatePaymentForm() {
     }
   }
 
+  async function getInv(page: number, keyword = "") {
+    setLoading(true);
+    try {
+      const limit = 50;
+      const domain = import.meta.env.VITE_BACKEND;
+      if (keyword != "") {
+        page = 1;
+      }
+      const url = route.purchaseInvoice.all(
+        page,
+        limit,
+        detailDraft.invType,
+        selectedBp.CardCode,
+      );
+      const endpoint = `${domain}${url}`;
+      const response = await axios.get(endpoint);
+
+      console.log(url);
+      console.log(response.data);
+
+      setInvList(response.data.data.value);
+      if (response.data.data.jumlah != 0) {
+        setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error("Gagal:", error.message);
+      alert("Gagal Mengambil Data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   //VARIABEL
   useEffect(() => {
     if (openBpModal) {
@@ -332,10 +438,18 @@ export default function CreatePaymentForm() {
       const handler = setTimeout(() => {
         getBank(currentPage, bankKeyword);
       }, 400);
-      console.log(form.bank);
       return () => clearTimeout(handler);
     }
   }, [openBankModal, currentPage, bankKeyword]);
+
+  useEffect(() => {
+    if (openInvModall) {
+      const handler = setTimeout(() => {
+        getInv(currentPage, invKeyword);
+      }, 400);
+      return () => clearTimeout(handler);
+    }
+  }, [openInvModall, currentPage, invKeyword]);
 
   useEffect(() => {
     if (!openBpModal) {
@@ -390,6 +504,12 @@ export default function CreatePaymentForm() {
     { key: "CountryCode", label: "Country" },
   ];
 
+  const invColumn = [
+    { key: "DocEntry", label: "Internal Number" },
+    { key: "DocNum", label: "Document Number" },
+    { key: "NumAtCard", label: "Description" },
+  ];
+
   const dataType = [
     {
       value: "VENDOR",
@@ -440,7 +560,7 @@ export default function CreatePaymentForm() {
                   type="text"
                   label="Outgoing No"
                   placeholder="Outgoing No."
-                  required={true}
+                  required={false}
                   value={form.outgoingNum}
                   onChange={handleChange}
                 />
@@ -508,7 +628,17 @@ export default function CreatePaymentForm() {
               />
 
               {form.type == "ACCOUNT" ? (
-                ""
+                <>
+                  <CustomInput
+                    id="receiveNo"
+                    type="text"
+                    label="Receive No."
+                    placeholder="Receiving No."
+                    required={true}
+                    value={form.receiveNo}
+                    onChange={handleChange}
+                  />
+                </>
               ) : (
                 <>
                   <div className="flex flex-col gap-2">
@@ -616,30 +746,38 @@ export default function CreatePaymentForm() {
                       onPageChange={setCurrentPage}
                       loading={loading}
                       bpKeyword={coaKeyword}
-                      onKeywordChange={setCoaKeyword}
+                      onKeywordChange={setBankKeyword}
                     />
                   </div>
                 </div>
               </div>
               <div className="grid gap-y-4">
-                <CustomInput
-                  id="checkNo"
-                  type="text"
-                  label="Check No."
-                  placeholder="Check No."
-                  required={true}
-                  value={form.checkNo}
-                  onChange={handleChange}
-                />
-                <CustomInput
-                  id="receiveNo"
-                  type="text"
-                  label="Receive No."
-                  placeholder="Receiving No."
-                  required={true}
-                  value={form.receiveNo}
-                  onChange={handleChange}
-                />
+                {form.means == "CHECK" ? (
+                  <>
+                    <CustomInput
+                      id="checkNo"
+                      type="text"
+                      label="Check No."
+                      placeholder="Check No."
+                      required={form.means == "CHECK" ? true : false}
+                      value={form.checkNo}
+                      onChange={handleChange}
+                    />
+                  </>
+                ) : null}
+                {form.means == "BANK TRANSFER" ? (
+                  <>
+                    <CustomInput
+                      id="bankFee"
+                      type="text"
+                      label="Bank Charge"
+                      placeholder="Bank Charge"
+                      required={form.means == "BANK TRANSFER" ? true : false}
+                      value={form.bankFee}
+                      onChange={handleChange}
+                    />
+                  </>
+                ) : null}
               </div>
             </div>
           </Card>
@@ -670,26 +808,50 @@ export default function CreatePaymentForm() {
                         onChange={handleInvoiceTypeChange}
                         data={invoiceType[form.type]}
                       />
+
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="invList">
+                          Select {detailDraft.invType} Invoice
+                        </Label>
+                        <div id="invList" className="flex gap-x-2">
+                          <Button
+                            onClick={() => setOpenInvModall(true)}
+                            disabled={selectedBp.CardCode == "" ? true : false}
+                          >
+                            {detailDraft.invoiceNo == ""
+                              ? `SELECT ${detailDraft.invType} Invoice`
+                              : detailDraft.invoiceNo}
+                          </Button>
+                          <TextInput
+                            className="flex-1"
+                            type="text"
+                            disabled={true}
+                            value={
+                              detailDraft.invoiceNo == null
+                                ? `SELECT ${detailDraft.invType} Invoice`
+                                : selectedInv.NumAtCard
+                            }
+                          />
+                          <ChooseFromListModal
+                            open={openInvModall}
+                            onClose={() => setOpenInvModall(false)}
+                            onSelect={(inv) => hanldeInv(inv)}
+                            data={invList}
+                            columns={invColumn}
+                            title={`Please Select ${detailDraft.invType} Invoice`}
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            loading={loading}
+                            bpKeyword={invKeyword}
+                            onKeywordChange={setInvKeyword}
+                          />
+                        </div>
+                      </div>
                     </>
                   )}
 
-                  <CustomInput
-                    id="vendorRef"
-                    type="text"
-                    label="Vendor Ref No."
-                    placeholder="Vendor Ref No."
-                    value={detailDraft.vendorRef}
-                    onChange={handleChangeCollection}
-                  />
                   {/* <CustomInput id="invoiceAmount" type="text" label="Invoice Amount" placeholder="Invoice Amount" value={detailDraft.invoiceAmount} onChange={handleChangeCollection} /> */}
-                  <CustomInput
-                    id="wTaxAmount"
-                    type="text"
-                    label="W Tax Amount"
-                    placeholder="W Tax Amount"
-                    value={detailDraft.wTaxAmount}
-                    onChange={handleChangeCollection}
-                  />
                   <CustomInput
                     id="paymentAmount"
                     type="text"
@@ -706,6 +868,7 @@ export default function CreatePaymentForm() {
                         type="text"
                         label="Balance Invoice"
                         placeholder="Blance Invoice"
+                        disable={form.type == "CUSTOMER" ? false : true}
                         value={detailDraft.balanceInvoice}
                         onChange={handleChangeCollection}
                       />
@@ -715,7 +878,7 @@ export default function CreatePaymentForm() {
                         label="Cash Discount"
                         placeholder="Cash Discount"
                         value={detailDraft.cashDisc}
-                        onChange={handleChangeCollection}
+                        onChange={handleDiscChange}
                       />
                     </>
                   )}
@@ -831,8 +994,8 @@ export default function CreatePaymentForm() {
               {form.type == "VENDOR" ? (
                 <>
                   <TableHeadCell>Invoice Type</TableHeadCell>
-                  <TableHeadCell>invoice No</TableHeadCell>
-                  <TableHeadCell>Vendor References</TableHeadCell>
+                  <TableHeadCell>Invoice No</TableHeadCell>
+                  <TableHeadCell>Invoice Notes</TableHeadCell>
 
                   {/* TIDAK ADA FIELD */}
                   <TableHeadCell>Invoice Currencies</TableHeadCell>
@@ -877,8 +1040,8 @@ export default function CreatePaymentForm() {
                     <>
                       <TableCell>{collectData[idx].invType}</TableCell>
                       <TableCell>{collectData[idx].invoiceNo}</TableCell>
-                      <TableCell>{collectData[idx].vendorRef}</TableCell>
-                      <TableCell>INVOICE CURRENCIES</TableCell>
+                      <TableCell>{collectData[idx].invoiceNotes}</TableCell>
+                      <TableCell>{collectData[idx].currencies}</TableCell>
                       <TableCell>{collectData[idx].invoiceAmount}</TableCell>
                       <TableCell>{collectData[idx].wTaxAmount}</TableCell>
                       <TableCell>{collectData[idx].cashDisc}</TableCell>

@@ -22,6 +22,11 @@ import axios from "axios";
 import route from "../service/routeMapping";
 
 export default function CreatePaymentForm() {
+  const initSeries = {
+    SeriesName: "",
+    Series: 0,
+  };
+
   const initForm = {
     houseBank: "",
     createDate: new Date(),
@@ -40,6 +45,7 @@ export default function CreatePaymentForm() {
     remarks: "",
     approval: "",
     bankFee: 0,
+    useriesName: "",
   };
 
   const initDraft = {
@@ -133,7 +139,8 @@ export default function CreatePaymentForm() {
   const [openBpModal, setOpenBpModal] = useState(false);
   const [openCoaModal, setOpenCoaModal] = useState(false);
   const [openBankModal, setOpenBankModal] = useState(false);
-  const [openInvModall, setOpenInvModall] = useState(false);
+  const [openInvModal, setOpenInvModal] = useState(false);
+  const [openSeriesModal, setOpenSeriesModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -145,17 +152,20 @@ export default function CreatePaymentForm() {
   const [selectedInv, setSelectedInv] = useState(initSelectInv);
   const [selectedCoa, setSelectedCoa] = useState(initCoa);
   const [selectedBank, setSelectedBank] = useState(initBank);
+  const [selectedSerries, setSelectedSerries] = useState(initSeries);
 
   const [collectData, setCollectData] = useState([]);
   const [bpList, setBpList] = useState<any[]>([]);
   const [coaList, setCoaList] = useState<any[]>([]);
   const [bankList, setBankList] = useState<any[]>([]);
   const [invList, setInvList] = useState<any[]>([]);
+  const [seriesList, setSeriesList] = useState<any[]>([]);
 
   const [bpKeyword, setBpKeyword] = useState("");
   const [coaKeyword, setCoaKeyword] = useState("");
   const [bankKeyword, setBankKeyword] = useState("");
   const [invKeyword, setInvKeyword] = useState("");
+  const [seriesKeyword, setSeriesKeyword] = useState("");
 
   function handleBpCode(bp: any) {
     setSelectedBp(bp);
@@ -179,6 +189,15 @@ export default function CreatePaymentForm() {
       ...prevForm,
       bank: bank,
     }));
+  }
+
+  function handleSeries(series: any) {
+    setSelectedSerries(series);
+    setForm((prevForm) => ({
+      ...prevForm,
+      useriesName: series.SeriesName,
+    }));
+    console.log(form.useriesName);
   }
 
   function hanldeInv(inv: any) {
@@ -259,6 +278,14 @@ export default function CreatePaymentForm() {
     }));
   }
 
+  const handleDeleteRow = (rowIndex: number) => {
+    setCollectData((prev) => {
+      const temp = [...prev];
+      temp.splice(rowIndex, 1);
+      return temp;
+    });
+  };
+
   async function getPurchaseInvoice(cardCode: string) {
     try {
       const domain = import.meta.env.VITE_BACKEND;
@@ -295,6 +322,7 @@ export default function CreatePaymentForm() {
   function handleAddDetail() {
     setCollectData((prev) => [...prev, detailDraft]);
     setDetailDraft(initDraft);
+    setSelectedInv(initSelectInv);
   }
 
   async function getBpCode(page: number, keyword: string, cardType: string) {
@@ -395,14 +423,44 @@ export default function CreatePaymentForm() {
         selectedBp.CardCode,
       );
       const endpoint = `${domain}${url}`;
+      console.log(endpoint);
       const response = await axios.get(endpoint);
 
-      console.log(url);
       console.log(response.data);
 
       setInvList(response.data.data.value);
       if (response.data.data.jumlah != 0) {
         setTotalPages(Math.ceil(response.data.data.jumlah / limit));
+      } else {
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error("Gagal:", error.message);
+      alert("Gagal Mengambil Data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function getSeries(page: number, keyword = "") {
+    setLoading(true);
+    try {
+      const limit = 50;
+      const domain = import.meta.env.VITE_BACKEND;
+      if (keyword != "") {
+        page = 1;
+      }
+      const url = route.seriesName.all(page, limit, keyword);
+      const endpoint = `${domain}${url}`;
+      console.log(endpoint);
+
+      const response = await axios.get(endpoint);
+
+      console.log(response.data);
+
+      setSeriesList(response.data.value);
+      if (response.data.jumlah != 0) {
+        setTotalPages(Math.ceil(response.data.jumlah / limit));
       } else {
         setTotalPages(1);
       }
@@ -443,13 +501,22 @@ export default function CreatePaymentForm() {
   }, [openBankModal, currentPage, bankKeyword]);
 
   useEffect(() => {
-    if (openInvModall) {
+    if (openInvModal) {
       const handler = setTimeout(() => {
         getInv(currentPage, invKeyword);
       }, 400);
       return () => clearTimeout(handler);
     }
-  }, [openInvModall, currentPage, invKeyword]);
+  }, [openInvModal, currentPage, invKeyword]);
+
+  useEffect(() => {
+    if (openSeriesModal) {
+      const handler = setTimeout(() => {
+        getSeries(currentPage, seriesKeyword);
+      }, 400);
+      return () => clearTimeout(handler);
+    }
+  }, [openSeriesModal, currentPage, invKeyword]);
 
   useEffect(() => {
     if (!openBpModal) {
@@ -510,6 +577,11 @@ export default function CreatePaymentForm() {
     { key: "NumAtCard", label: "Description" },
   ];
 
+  const seriesColumn = [
+    { key: "SeriesName", label: "Series Name" },
+    { key: "Series", label: "Series Code" },
+  ];
+
   const dataType = [
     {
       value: "VENDOR",
@@ -542,19 +614,45 @@ export default function CreatePaymentForm() {
     <form onSubmit={handleSubmit}>
       <div id="formCreateContent" className="grid-col-1 mt-4 mb-5 grid gap-y-5">
         <div className="grid grid-cols-2">
-          <div className="flex place-content-end">
+          <div className="flex">
             <div className="">
-              <div className="grid h-full grid-cols-4 content-start gap-5">
-                <CustomInput
-                  disable
-                  id="status"
-                  type="text"
-                  label="Status"
-                  placeholder="Status"
-                  required={true}
-                  value={form.status}
-                  onChange={handleChange}
-                />
+              <div className="grid h-full grid-cols-2 content-start gap-5">
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="useriesName">Select Series Code</Label>
+                    <div id="useriesName" className="flex gap-x-2">
+                      <Button onClick={() => setOpenSeriesModal(true)}>
+                        {form.useriesName == ""
+                          ? "SELECT No. Serries"
+                          : form.useriesName}
+                      </Button>
+                      <TextInput
+                        className="flex-1"
+                        type="text"
+                        disabled={true}
+                        value={
+                          form.useriesName == ""
+                            ? "SELECT No. Serries"
+                            : form.useriesName
+                        }
+                      />
+                      <ChooseFromListModal
+                        open={openSeriesModal}
+                        onClose={() => setOpenSeriesModal(false)}
+                        onSelect={(e) => handleSeries(e)}
+                        data={seriesList}
+                        columns={seriesColumn}
+                        title="Select Nomor Series"
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                        loading={loading}
+                        bpKeyword={seriesKeyword}
+                        onKeywordChange={setSeriesKeyword}
+                      />
+                    </div>
+                  </div>
+                </>
                 <CustomInput
                   id="outgoingNum"
                   type="text"
@@ -815,7 +913,7 @@ export default function CreatePaymentForm() {
                         </Label>
                         <div id="invList" className="flex gap-x-2">
                           <Button
-                            onClick={() => setOpenInvModall(true)}
+                            onClick={() => setOpenInvModal(true)}
                             disabled={selectedBp.CardCode == "" ? true : false}
                           >
                             {detailDraft.invoiceNo == ""
@@ -833,8 +931,8 @@ export default function CreatePaymentForm() {
                             }
                           />
                           <ChooseFromListModal
-                            open={openInvModall}
-                            onClose={() => setOpenInvModall(false)}
+                            open={openInvModal}
+                            onClose={() => setOpenInvModal(false)}
                             onSelect={(inv) => hanldeInv(inv)}
                             data={invList}
                             columns={invColumn}
@@ -1072,7 +1170,7 @@ export default function CreatePaymentForm() {
                   ) : null}
 
                   <TableCell>
-                    <CustomButton name="DELETE" />
+                    <CustomButton onClick={handleDeleteRow} name="DELETE" />
                   </TableCell>
                 </TableRow>
               ))}

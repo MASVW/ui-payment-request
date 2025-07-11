@@ -9,14 +9,15 @@ type FormItem = {
   reqPaymentDate: Date;
   postDate: Date;
   outgoingNum: string;
-  coa: CoaCollectionItem;
-  bpCode: BpCollectionItem;
-  bank: BankCollectionItem;
+  coa: CoaCollectionItem | null;
+  bpCode: BpCollectionItem | null;
+  bank: BankCollectionItem | null;
   checkNo: string;
   receiveNo: string;
   remarks: string;
   approval: string;
   bankFee: number;
+  useriesName: string;
 };
 
 type CollectionItem = {
@@ -129,7 +130,7 @@ export function buildPaymentRequestPayload(
     UpdateDate: null,
     UpdateTime: null,
     DataSource: "S",
-    U_SERRIESNAME: "BK0125", //NO Serries Keluaran BK BLABLA
+    U_SERRIESNAME: form.useriesName, //NO Serries Keluaran BK BLABLA
     U_TYPE: form.type,
     U_PAYMEANS: form.means,
     U_COA: form.coa.Code,

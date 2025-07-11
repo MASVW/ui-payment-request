@@ -1,5 +1,5 @@
 export interface RouteGroup {
-  all: (pages?: number, limit?: number) => string;
+  all: (pages?: number, limit?: number, keyword?: string) => string;
   allFormatted?: (pages?: number, limit?: number) => string;
   byId?: (id: string | number) => string;
   byIdFormatted?: (id: string | number) => string;
@@ -9,12 +9,20 @@ export interface RouteGroup {
 }
 
 export interface RouteObject {
-  businessPartner: RouteGroup;
+  businessPartner: {
+    all: (
+      pages?: number,
+      limit?: number,
+      typeInv?: string,
+      cardCode?: string,
+    ) => string;
+  };
   paymentRequest: RouteGroup;
   chartOfAccount: RouteGroup;
   bank: {
     all: () => string;
   };
+  seriesName: RouteGroup;
   purchaseInvoice: {
     all: (
       pages?: number,
@@ -56,6 +64,10 @@ const route: RouteObject = {
   purchaseInvoice: {
     all: (pages = 1, limit = 20, typeInv = "AP", cardCode) =>
       `/api/v1/purchase-invoice/${typeInv}/${cardCode}?pages=${pages}&limit=${limit}`,
+  },
+  seriesName: {
+    all: (pages = 1, limit = 20, keyword = "") =>
+      `/api/v1/series-name?pages=${pages}&limit=${limit}${keyword ? `&keyword=${keyword}` : ""}`,
   },
   root: {
     hello: () => `/`,
